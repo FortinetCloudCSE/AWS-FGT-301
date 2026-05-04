@@ -1,0 +1,57 @@
+config system global
+    set gui-display-hostname enable
+    set gui-app-detection-sdwan enable
+end
+
+config system settings
+    set gui-dns-database enable
+    set gui-allow-unnamed-policy enable
+    set gui-multiple-interface-policy enable
+end
+
+config system admin
+    edit admin
+        set password ENC PB2qLLqjsAa42jBe1BkffHZALR8BcFxAjM1rJ5Qj1qv2r4fkBbrx0T8StWJ8fwFyW5ilWV717TCDk5oPHUf7UeUPfDPcpF0KnCFFTD8xyyzQrk=
+        set accprofile super_admin
+end
+
+config system interface
+    edit "port1"
+        set vdom "root"
+        set mode static
+        set ip $(mgmt_ip) 255.255.255.0
+        append allowaccess ping https ssh http fgfm snmp
+        set type physical
+        set mtu-override enable
+        set mtu 8950
+        set alias "Management"
+    next
+    edit "port2"
+        set vdom root
+        set type physical
+        set ip $(lan1_net:4,1)/$(lan1_mask)
+        set allowaccess ping https ssh
+        set device-identification enable
+        set alias "LAN"
+        set monitor-bandwidth enable
+    next
+    edit $(ul1)
+        set vdom root
+        set type physical
+        set allowaccess ping fgfm
+        set ip $(ul1_ip_mask)
+        set alias ul1
+        set monitor-bandwidth enable
+        set role wan
+    next
+    edit $(ul2)
+        set vdom root
+        set type physical
+        set allowaccess ping fgfm
+        set mode dhcp
+        set alias ul2
+        set monitor-bandwidth enable
+        set role wan
+        set macaddr 02:00:00:00:00:$(branch_id)b ##dhcp lab purposes only
+    next
+end
