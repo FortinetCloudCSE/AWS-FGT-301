@@ -1,0 +1,54 @@
+config router route-map
+    edit "RM-TO-DC_Hub1"
+        config rule
+            edit 1
+                set match-community "Priority_1"
+                set set-metric 1
+            next
+            edit 2
+                set match-community "Priority_2"
+                set set-metric 2
+            next
+            edit 3
+                set match-community "Priority_3"
+                set set-metric 3
+            next
+            edit 4
+                set match-community "Priority_4"
+                set set-metric 4
+            next
+            edit 5
+                set match-community "Priority_9999"
+                set set-metric 9999
+            next
+            edit 6
+            next
+        end
+    next
+    edit "RM-TO-DC_Hub2"
+        config rule
+            edit 1
+                set match-community "Priority_1"
+                set set-metric 5
+            next
+            edit 2
+                set match-community "Priority_2"
+                set set-metric 6
+            next
+            edit 3
+                set match-community "Priority_3"
+                set set-metric 7
+            next
+            edit 4
+                set match-community "Priority_4"
+                set set-metric 8
+            next
+            edit 5
+                set match-community "Priority_9999"
+                set set-metric 9999
+            next
+            edit 6
+            next
+        end
+    next
+end

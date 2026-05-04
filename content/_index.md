@@ -1,32 +1,16 @@
 ---
-title: "Fortinet TECWorkshop Template - MVP2"
-linkTitle: "TECWorkshop Template"
+title: SD-WAN Workshop
 weight: 1
-archetype: "home"
-description: "Hugo for Fortinet TEC Workshops"
+archetype: home
+description: |
+    This Workshop will provide you with the steps needed to create a fully functioning Hub and Branch SD-WAN configuration from a blank FortiManager using an SD-WAN Overlay Template.  The intention of this lab is to expose you to the power of the SD-WAN Overlay Template and understand all it creates for you.  Also, we will cover the additional FMG configurations you will need to have a complete SD-WAN configuration for both Hub and Branch FortiGates.
 ---
 
+### Contents
 
-THIS IS A TEST
-
-
-
-### {{% badge style="info" color="red" icon="fa-fw fas fa-exclamation-triangle" title=" " %}}Change{{% /badge %}} FYI, YOU WILL NOW NEED TO CHECKIN WITH YOUR EMAIL ADDRESS TO VIEW THIS GUIDE
-This change helps with analytics and data gathering and is consistent with UserRepo guide (this repo) serving as the root of every new workshop (e.g. this guide is always on latest and greatest featureset which gets cloned into every new workshop)  
-
-This site will explain how to use the [Hugo Web Framework](https://gohugo.io/) & the ["reLearn" Theme](https://mcshelby.github.io/hugo-theme-relearn/index.html) to effectively organize & deliver Fortinet TEC Workshops & Product demos in a consistent, simple, and visually appealing format.
-
-The beauty of this framework lies in its simplicity.  Within approx 30 mins, anybody can have a site up and running.  Content is created via Markdown files, and the workshop guide layout is simply a directory structure.
-
-Follow along on this simple tutorial to get up and running with a Hugo formatted site for your TEC Workshop/training/demo content today!
-
-### Learning Objectives
-- Setup UserRepo on your system & Build container with Hugo & CentralRepo
-- Learn to work in Hugo to create your content to display proper information flow for your TEC Workshop/demo/training
-- Publish your Hugo site to GitHub pages via a CI/CD model 
- 
-### Hugo and Fortinet TECWorkshops - Visually
-- The purpose of this workflow is to simplify creation of Fortinet TECWorkshop guides while providing an example CI/CD development environment with maximum re-usability 
-- Here's a visual representation of our process which will be fully explained in each chapter
-
-{{< FTNThugoFlow >}}
+1. [Getting Started](/xperts-2025/depl_maint_sdwan_fmg_xperts25/fmg-poc-prep-lab-guide/00_labprep-copy/)
+1. [Lab1 - FMG SOT Creation](/xperts-2025/depl_maint_sdwan_fmg_xperts25/fmg-poc-prep-lab-guide/01_fmgsotcreation)
+1. [Lab2 - SOT Template Review and Edits](/xperts-2025/depl_maint_sdwan_fmg_xperts25/fmg-poc-prep-lab-guide/02_sotreviewedit)
+1. [Lab3 - Policies and Objects](/xperts-2025/depl_maint_sdwan_fmg_xperts25/fmg-poc-prep-lab-guide/03_policyandobjects)
+1. [Lab4 - Config Deployment](/xperts-2025/depl_maint_sdwan_fmg_xperts25/fmg-poc-prep-lab-guide/04_deployment)
+1. [Lab5 - Config Deployment](/xperts-2025/depl_maint_sdwan_fmg_xperts25/fmg-poc-prep-lab-guide/5_modulefive)
