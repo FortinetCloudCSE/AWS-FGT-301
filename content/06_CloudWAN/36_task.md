@@ -1,5 +1,5 @@
 ---
-title: "Lab 5 - Advanced Routing"
+title: "Lab 6 - Advanced Routing"
 weight: 10
 ---
 

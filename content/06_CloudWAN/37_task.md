@@ -1,5 +1,5 @@
 ---
-title: "Lab 5 - Scale Considerations"
+title: "Lab 6 - Scale Considerations"
 weight: 15
 
 ---
@@ -61,7 +61,7 @@ Scaling out in size refers to using an active active design where multiple FGTs 
 
 {{% /expand %}}
 
-###### **Failover Times
+###### **Failover Times**
 {{% expand title = "**Detailed Steps...**" %}}
 
 FGCP Unicast in AWS works mostly like FGCP on premise besides a few key points. The FGTs must reach out to AWS EC2 API to "failover" or update the SDN (software defined networking) around the FGTs to point the current primary unit. This involved moving cluster Elastic IPs and replacing VPC routes to point to the correct interface on the current primary unit. Typically, the failover occurs anywhere from 5-10 seconds, that is with measuring ICMP against the cluster Elastic IPs during failover. This measures the time it takes for FGCP to failover between the FGTs (within 1 second) and for the AWS EC2 API to apply the requested infrastructure updates (ie move EIPs and replace routes, usually 5-6 seconds). For more information on the FGCP Unicast failover process in AWS, reference [**Fortinet Cloud CSE documentation**](https://fortinetcloudcse.github.io/FGCP-in-AWS/).
@@ -123,7 +123,7 @@ The EC2 "up to" bandwidth numbers represent the maximum theoretical network thro
 
 > **Ref:** [**1**](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-network-bandwidth.html)
 
-A single 5-tuple TCP/UDP flow (or 3-tuple for GRE/IPsec) is limited to **5 Gbps** unless both instances are in the same [cluster placement group](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html). This applies regardless of instance size, VPC, subnet, or AZ.
+A single 5-tuple TCP/UDP flow (or 3-tuple for GRE/IPsec) is limited to **5 Gbps** unless both instances are in the same [**cluster placement group**](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html). This applies regardless of instance size, VPC, subnet, or AZ.
 
 This means that a single overlay tunnel, GRE or IPsec, is one flow and capped at 5 Gbps. To get more bandwidth you will need to use ECMP tunnels and routing strategy to get more than 5 Gbps.
 
@@ -272,7 +272,7 @@ next
 end
 ```
 
-Use the [IPsec overhead calculator](https://ipsec-overhead-calculator.netsec.us/) for custom configs.
+Use the [**IPsec overhead calculator**](https://ipsec-overhead-calculator.netsec.us/) for custom configs.
 
 | Protocol | Overhead | Effective MSS (TCP) |
 |----------|----------|---------------------|

@@ -1,5 +1,5 @@
 ---
-title: "Lab 5 - Cloud WAN"
+title: "Lab 6 - Cloud WAN"
 weight: 600
 ---
 
