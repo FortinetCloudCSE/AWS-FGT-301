@@ -14,7 +14,7 @@ In this lab, we will focus on more advanced routing concepts within Cloud WAN in
 
 ![](image-cwan-overview.png)
 
-Picking up from the last section we now have attachment policies, segment actions to share routes between segments, and specified a segment to be isolated. In this section, you will need to create the appropriate Cloud WAN Core Network Policy to blackhole certain traffic before reaching the target VPC and also create routing policies that will automatically summarize routes before advertising out to the hub FGTs. Finally you will configure prefix lists and route maps on the hub FortiGates to controll what routes are advertised to Cloud WAN.
+Picking up from the last section we now have attachment policies, segment actions to share routes between segments, and specified a segment to be isolated. In this section, you will need to create the appropriate Cloud WAN Core Network Policy to blackhole certain traffic before reaching the target VPC and create routing policies that will automatically summarize routes before advertising out to the hub FGTs. Finally you will configure prefix lists and route maps on the hub FortiGates to control what routes are advertised to Cloud WAN.
 
 ![](image-cwan-diag.png)
 
@@ -26,7 +26,7 @@ Picking up from the last section we now have attachment policies, segment action
 
 ![](image-cwan-overview.png)
 
-Below are two tables of how [**route evaluation works within Cloud WAN**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-create-attachment.html#cloudwan-route-evaluation). Understanding this is the foundation for understanding what routes will be selected and if/when you need to apply routing polcies or blackhole routes to acheive the desired routing outcome.
+Below are two tables of how [**route evaluation works within Cloud WAN**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-create-attachment.html#cloudwan-route-evaluation). Understanding this is the foundation for understanding what routes will be selected and if/when you need to apply routing policies or blackhole routes to achieve the desired routing outcome.
 
 | Step | Evaluation Stage                    | Criteria                                  | What Happens                                           |
 | ---- | ----------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
@@ -388,7 +388,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
     ![](image-t6-9.png)
     ![](image-t6-10.png)
 	
-- **3.9:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshot below to complete the configuration. **Pay attention to the Condtion - Routing policy label** since we will need to use the same value later when editing the Connect attachments.
+- **3.9:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshot below to complete the configuration. **Pay attention to the Condition - Routing policy label** since we will need to use the same value later when editing the Connect attachments.
 
     ![](image-t6-11.png)
     ![](image-t6-12.png)
@@ -400,7 +400,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
     ![](image-t6-13.png)
     ![](image-t6-14.png)
 
-- **3.12:** At first you will see that the routing policy label is applied but there is no attachment routing policy association yet. After a few minutes you should refresh your browser and see that there is now an attachment routing policy association.
+- **3.12:** At first, you will see that the routing policy label is applied but there is no attachment routing policy association yet. After a few minutes you should refresh your browser and see that there is now an attachment routing policy association.
 
     ![](image-t6-15.png)
     ![](image-t6-16.png)
@@ -422,7 +422,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 - **4.4:** Login to **scw-region1-hub1-fgt1**, using the outputs **scw-region1-hub1-login-url** and the credentials **`admin`**, and **`FORTInet123!`**.
 - **4.5:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
 - **4.6:** Run the command **`get router info bgp summary`** and to get the list of IPs for the AWS Connect peers and branch FGT peers.
-- **4.7:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deploymnet**:
+- **4.7:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
 
 ```
 scw-region1-hub1-fgt1 # get router info bgp summary
@@ -492,7 +492,7 @@ Origin codes: i - IGP, e - EGP, ? - incomplete
 
 Total number of prefixes 2
 ```
-- **4.8:** Notice that for the Connect peers, we are advertising each branch FGT local CIDR (**10.32.0.32/28, 10.48.0.32/28**). We want to summarize this to **10.32.0.0/11** as this will cover all brnach FGTs for this SDWAN deployment.  To do this we are going to use prefix lists, route maps, a static route, a bgp network statement, and route-map settings for both Connect Peers and branch FGT peers. The goal is to only advertise the summary route to AWS but not to the branch FGTs so we do not affect ADVPN shortcuts between branches.
+- **4.8:** Notice that for the Connect peers, we are advertising each branch FGT local CIDR (**10.32.0.32/28, 10.48.0.32/28**). We want to summarize this to **10.32.0.0/11** as this will cover all branch FGTs for this SDWAN deployment.  To do this we are going to use prefix lists, route maps, a static route, a bgp network statement, and route-map settings for both Connect Peers and branch FGT peers. The goal is to only advertise the summary route to AWS but not to the branch FGTs so we do not affect ADVPN shortcuts between branches.
 
 - **4.9:** **Copy and paste** the CLI commands below **on both hub FGTs**. These are the prefix lists, route maps, and static route that will be common configuration. **Don't forget to run through this step on hub2 FGT**.
 
@@ -640,20 +640,20 @@ Total number of prefixes 2
     {{% /expand %}}
 
 
-###### 6) Let's dig deeper to understand how all of this works
+###### 5) Let's dig deeper to understand how all of this works
 
 {{% expand title = "**Detailed Steps...**" %}}
 
-- **6.1** Notice that Instance-A can access Instance-B over HTTP but could not access Instance-C, however pings were successful. This is because Instance-A and Instance-B are in VPCs attached to the production segment which is configured as a shared routing domain by default. This allows anything attached to the same segment to communicate bidirectionally. This means anything in VPC A can reach VPC B without being sent through the FGTs in the inspection VPC which is in the firewall segment.
-- **6.2** VPC C is in the development segment so when VPC A reaches out to this destination, the routes for the production segment first forwards traffic to the FGTs in the inspection VPC (via 0.0.0.0/0 to Connect attachments). This allowed the FGTs to enforce FW policy that blocked HTTP access from VPC A to VPC C but allowed pings between the different segments.
-- **6.3** Segments can be configured to be isolated so that resources attached to the same segment can't communicate directly. Through the Core Network Policy you can still allow access to specific routes or other segments explicitly.
-- **6.4** In the **Network Manager Console** navigate to the **Policy versions page** select **'Policy version - 2' and click Edit**.
-- **6.5** Select the **Segments tab**, select the **production segment and click Edit**.
-- **6.6** On the **Edit segment page**, check the box for **Isolated attachments and click Edit Segment**, then on the next page **click Create Policy**.
+- **5.1** Notice that Instance-A can access Instance-B over HTTP but could not access Instance-C, however pings were successful. This is because Instance-A and Instance-B are in VPCs attached to the production segment which is configured as a shared routing domain by default. This allows anything attached to the same segment to communicate bidirectionally. This means anything in VPC A can reach VPC B without being sent through the FGTs in the inspection VPC which is in the firewall segment.
+- **5.2** VPC C is in the development segment so when VPC A reaches out to this destination, the routes for the production segment first forwards traffic to the FGTs in the inspection VPC (via 0.0.0.0/0 to Connect attachments). This allowed the FGTs to enforce FW policy that blocked HTTP access from VPC A to VPC C but allowed pings between the different segments.
+- **5.3** Segments can be configured to be isolated so that resources attached to the same segment can't communicate directly. Through the Core Network Policy you can still allow access to specific routes or other segments explicitly.
+- **5.4** In the **Network Manager Console** navigate to the **Policy versions page** select **'Policy version - 2' and click Edit**.
+- **5.5** Select the **Segments tab**, select the **production segment and click Edit**.
+- **5.6** On the **Edit segment page**, check the box for **Isolated attachments and click Edit Segment**, then on the next page **click Create Policy**.
 	![](image-t6-14.png)
-- **6.7** You should be back on the **Policy versions page** with a new policy version showing. Once **Policy version - 3 shows Ready to execute**, select the version and **click View or apply change set**.
-- **6.8** On the **next page click Apply change set**. You will be returned to the Policy version page and see the **new policy version is executing**. In a few moments this will show as **Execution succeeded**.
-- **6.9:** Navigate back to the **EC2 Console** and connect to **Instance-A** using the **[Serial Console directions](../3_modulethree.html)** 
+- **5.7** You should be back on the **Policy versions page** with a new policy version showing. Once **Policy version - 3 shows Ready to execute**, select the version and **click View or apply change set**.
+- **5.8** On the **next page click Apply change set**. You will be returned to the Policy version page and see the **new policy version is executing**. In a few moments this will show as **Execution succeeded**.
+- **5.9:** Navigate back to the **EC2 Console** and connect to **Instance-A** using the **[Serial Console directions](../3_modulethree.html)** 
 	- Password: **`FORTInet123!`**
 - **6.10:** Run the following commands to test connectivity again and make sure the results match expectations 
   SRC / DST | VPC B | VPC C 
@@ -662,7 +662,7 @@ Total number of prefixes 2
   **Instance A** | **`ping 10.2.2.10`**  | **`ping 10.3.2.10`** 
   - HTTP should now be block by the FW policy on the FGTs for VPC B and C but Pings allowed
 
-- **6.11** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. You should eventually see routes matching the table below. **The production segment now does not automatically share routes for attachments**.
+- **5.11** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. You should eventually see routes matching the table below. **The production segment now does not automatically share routes for attachments**.
 
 	Segment | CIDRs
 	---|---
@@ -697,7 +697,7 @@ Total number of prefixes 2
 ## Discussion Points
 - Cloud WAN (CWAN) is a global service
   - Network Manager Console, Global Network, and Core Network Policy are global
-  - Segments are global, but connected resouces such as CNE locations and attachments are regional
+  - Segments are global, but connected resources such as CNE locations and attachments are regional
   - Core Network Edge (CNEs), and attachments (VPC, Connect, VPN, Direct Connect, etc) are regional
 - Segments are dedicated routing domains that can be isolated or allow direct communication between attached resources
 - Core Network Edges (CNEs) are essentially managed TGWs which are peered together with BGP

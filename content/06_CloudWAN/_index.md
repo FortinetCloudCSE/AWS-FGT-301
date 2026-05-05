@@ -1,6 +1,6 @@
 ---
 title: "Lab 5 - Cloud WAN"
-weight: 40
+weight: 600
 ---
 
 

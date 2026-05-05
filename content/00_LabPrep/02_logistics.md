@@ -14,14 +14,14 @@ For AWS Immersion Days, Xperts, and other events, we will provide you the follow
 
 Here is an example of what will be contained in the email:
 ```
--=-=-=-=- (aws info)
+-=-=-=-=- (aws login info)
 console: https://workshop-1234.signin.aws.amazon.com/console
 regions: us-west-1 & us-west-2
 user: workshop
 pass: !SupErS3c6e7!
 -=-=-=-=-
 
--=-=-=-=- (ftnt info)
+-=-=-=-=- (ftnt login info)
 username: admin
 password FORTInet23!
  
