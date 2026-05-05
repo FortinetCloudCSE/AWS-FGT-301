@@ -1,5 +1,5 @@
 ---
-title: "Lab 5 - Key Concepts"
+title: "Lab 6 - Key Concepts"
 weight: 5
 ---
 
@@ -209,7 +209,7 @@ Notice that 2 out of the 4 BGP peers with the address 100.64.x.x are showing dow
 - **5.5:** Run the command **`get router info bgp summary`** and notice **State/PfxRcd is now showing six routes received**.
 - **5.6:** Run the command **`get router info bgp neighbors <peer-ip> routes`** for each BGP neighbor and notice **six routes are received from Cloud WAN**. Notice that the **Next Hop address** is the IP of the Core Network attachment **scw-region1-sdwan-vpc-attachment** in the same subnet as port2 of FortiGate1. Also, notice the **Path column which shows the AS Path received**. You can see which routes are **originating from region1 vs region2 CNEs**.
 - **5.7:** Run the command **`get router info routing-table all`** and notice there is **a static route for 100.64.0.0/24 & 10.0.0.0/24 out port2**. This allows the FGTs to BGP directly with the Core Network Edge (CNE).
-- **5.8:** Navigate to the **EC2 Console** and connect to **scw-region1-spoke1-linux-instance** using the **[Serial Console directions](../05_modulefive.html)** 
+- **5.8:** Navigate to the **EC2 Console** and connect to **scw-region1-spoke1-linux-instance** using the **[Serial Console directions](../06_cloudwan.html)** 
     - Password: **`FORTInet123!`**
 - **5.9:** Run the following commands to test connectivity and make sure the results match expectations 
   SRC / DST | scw-region1-spoke2-linux-instance (dev) | scw-region2-spoke3-linux-instance (prod)
