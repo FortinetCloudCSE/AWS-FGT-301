@@ -15,7 +15,7 @@ In this lab, we will focus on Cloud WAN key components in a multi-region deploym
 
 Currently, Cloud WAN is configured with multiple segments and attachments (both VPC and Tunnel-less Connect).  You will need to create the appropriate Cloud WAN Core Network Policy to automatically enforce segment attachment rules and propagation of routes between segments to direct traffic to the FortiGate Active-Passive cluster in the same local region.
 
-In this setup these FortiGate are clustered together using FGCP unicast to sycnhronize configuration and sessions to provide SDWAN hub functionality and dynamic routing for branch locations into Cloud WAN. This design specifically uses Tunnel-less Connect attachments to allow dynamic routing between EC2 instances and a Cloud WAN Core Network Edge (CNE) without needing IPsec or GRE based overlay tunnels. This removes the overhead and bottlenecks that come with overlay tunnel protocols while still providing dynamic routing. As these FortiGates are working in an Active-Passive cluster, the passive FortiGate will not have an active BGP session to Cloud WAN as the data plane interfaces will be down.
+In this setup these FortiGate are clustered together using FGCP unicast to synchronize configuration and sessions to provide SDWAN hub functionality and dynamic routing for branch locations into Cloud WAN. This design specifically uses Tunnel-less Connect attachments to allow dynamic routing between EC2 instances and a Cloud WAN Core Network Edge (CNE) without needing IPsec or GRE based overlay tunnels. This removes the overhead and bottlenecks that come with overlay tunnel protocols while still providing dynamic routing. As these FortiGates are working in an Active-Passive cluster, the passive FortiGate will not have an active BGP session to Cloud WAN as the data plane interfaces will be down.
 
 ![](image-cwan-diag.png)
 
@@ -255,7 +255,7 @@ Notice that 2 out of the 4 BGP peers with the address 100.64.x.x are showing dow
 ## Discussion Points
 - Cloud WAN (CWAN) is a global service
   - Network Manager Console, Global Network, and Core Network Policy are global
-  - Segments are global, but connected resouces such as CNE locations and attachments are regional
+  - Segments are global, but connected resources such as CNE locations and attachments are regional
   - Core Network Edge (CNEs), and attachments (VPC, Connect, VPN, Direct Connect, etc) are regional
 - Segments are dedicated routing domains that can be isolated or allow direct communication between attached resources
 - Core Network Edges (CNEs) are essentially managed TGWs which are peered together with BGP
