@@ -9,7 +9,6 @@ weight: 3
 Before going through the workshop, we will run through a quiz as a group. This will help us to review important AWS networking concepts before moving onto the advanced topics in the workshop hands-on section.
 {{% /notice %}}
 
-{{< quizframe page="/gamebytag?tag=101-review" height="800" width="100%" >}}
 
 ![](AWS_networking.png)
 
