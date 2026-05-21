@@ -666,6 +666,4 @@ Total number of prefixes 2
 Once completed with this task, complete the quiz below as an individual whenever you are ready.
 {{% /notice %}}
 
-{{< quizframe page="/gamebytag?tag=cwan" height="800" width="100%" >}}
-
 **This concludes this task**
