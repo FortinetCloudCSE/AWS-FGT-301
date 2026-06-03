@@ -15,7 +15,7 @@ Auto-Discovery VPN (ADVPN) allows the Hub to dynamically inform a Branch about a
   - Default routes or RFC 1918 routes can be used on the Branches to get traffic back to the hub.
 - BGP can now be dynamically established between branches over ADVPN.
 - Next-hop tunnel interface IP no longer needs to be preserved.
-- Branches/Spokes will exchange routes and next hops directly between each other over ADVPN tunnels.
+- Branches/Spokes will exchange routes and next hops directly between each other over ADVPN shortcut tunnels.
 
 ### 7.4 ADVPN 2.0
 
@@ -28,7 +28,7 @@ Auto-Discovery VPN (ADVPN) allows the Hub to dynamically inform a Branch about a
 
 ## VPN Monitoring (Before ADVPN)
 
-***Navigation: Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → IPsec VPN (Enlarge)***
+***Navigation: FMG → Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → IPsec VPN (Enlarge)***
 
 Branch1 has 2 IPsec VPN tunnels to Hub1 and Hub2.
 
@@ -41,7 +41,7 @@ Branch1 has 2 IPsec VPN tunnels to Hub1 and Hub2.
 
 ## Route Monitoring (Before ADVPN)
 
-***Navigation: Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → Routing – Static & Dynamic (Enlarge)***
+***Navigation: FMG → Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → Routing – Static & Dynamic (Enlarge)***
 
 On the same Dashboard – Network Monitors, if you scroll down, you will see the Routing – Static & Dynamic section.
 
@@ -55,10 +55,11 @@ Notice that Branch1 currently does **not** have a route to the Branch2 network *
 
 ## Generate Traffic from Branch1 to Branch2
 
-1. Navigate to the **EC2 Console**, confirm you are in the **us-west-1 (N. California) region** in the upper right hand corner, and connect to **scw-region1-branch1-linux-instance** using the **[Serial Console directions](../2_cloudwan)** to get the unique username and console access.
+1. Using your [**environment outputs**](../0_labprep/02_logistics), login to the AWS console and navigate to the **EC2 Console**, confirm you are in the **us-west-1 (N. California) region** in the upper right hand corner, and connect to **scw-region1-branch1-linux-instance** using the **[serial console directions](../0_labprep/05_awsec2serialconsole)** to get the unique username and console access.
     - Username: instance-id (serial console directions link above shows how to get this for your environment)
-    - Password: `FORTInet123!`
-2. Start a ping and leave it running to **scw-region2-branch-2-linux-instance** which is in **us-west-2 (Oregon) region**. Don not stop the ping as we will need this traffic for this section and the next section of the workshop.
+    - Password: (relevant credentials in your environment outputs)
+
+2. Start a ping and leave it running to **scw-region2-branch-2-linux-instance** which is in **us-west-2 (Oregon) region**. Do not stop the ping as we will need this traffic for this section and the next section of the workshop.
     - `ping 10.48.0.46`
 
     This will generate ping traffic from a device behind Branch1 (**10.32.0.46**) toward a device behind Branch2 (**10.48.0.46**).
@@ -69,7 +70,7 @@ Notice that Branch1 currently does **not** have a route to the Branch2 network *
 
 ### IPsec VPN Dashboard
 
-***Navigation: Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → IPsec VPN (Enlarge)***
+***Navigation: FMG → Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → IPsec VPN (Enlarge)***
 
 Now that traffic is flowing between Branch1 and Branch2, you should see a new ADVPN shortcut IPsec Tunnel named **HUB1-VPN1_0**.
 
@@ -90,14 +91,19 @@ When the ADVPN shortcut IPsec tunnel HUB1-VPN1_0 is created, a health check is a
 
 ![HEALTH CHECK](printscreen-07-6.png)
 
-> [!NOTE]
-> SDWAN CSEs, can more info be specified here, what IPs are used for the shortcut health checks? The ADVPN Health Check is **not** using the HUB IP of 169.254.253.253 as its target.
+{{% notice tip %}} 
+The ADVPN Health Check is **not** using the HUB IP of 169.254.253.253 as its target for the ADVPN shortcut tunnels between these Branches. The ADVPN health check exchanges the associated Loopback IP of the branches with each other and the Branches reach out to each other. Notice the screenshots to see the Loopback interface for Branch1, bi-directional ICMP requests between both Branches, and the exchanged Loopback IP info via IPsec.
+
+![HUB1-VPN1](printscreen-07-91.png)
+&nbsp;
+![HUB1-VPN1](printscreen-07-92.png)
+{{% /notice %}}
 
 ---
 
 ## Route Monitoring (After ADVPN)
 
-***Navigation: Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → Routing – Static & Dynamic (Enlarge)***
+***Navigation: FMG → Device Manager → Device & Groups → Branch1 → Dashboard → Network Monitors → Routing – Static & Dynamic (Enlarge)***
 
 ![ROUTE MONITORING](printscreen-07-7.png)
 
@@ -119,7 +125,7 @@ FortiAnalyzer provides the FMG with a Secure SD-WAN Monitor. Here you can see th
 
 ## ADVPN Logging
 
-***Navigation: Device Manager → Log View → Custom Views → ADVPN Events***
+***Navigation: FMG → Device Manager → Log View → Custom Views → ADVPN Events***
 
 ![alt text](printscreen-07-9.png)
 

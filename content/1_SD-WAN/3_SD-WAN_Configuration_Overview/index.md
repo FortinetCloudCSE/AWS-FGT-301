@@ -11,7 +11,7 @@ Log into FMG and open Device Manager. Review the items being called out:
 
 ![DEVICE MANAGER](printscreen-03-1.png)
 
-1. **Device Groups** – Easily organise devices by type, region, etc.
+1. **Device Groups** – Easily organize devices by type, region, etc.
 2. **Config Status** – Quickly identify the device config synchronization status.
 3. **HA Status** – Cluster members and their status.
 4. **Firmware** – Current firmware version.
@@ -40,7 +40,7 @@ Display SD-WAN configuration on Branch1.
 1. **Zones** - Primarily referenced in firewall policy. They can also be used in static routes and SD-WAN service rules.
    - Individual members cannot be referenced in FW policy. Therefore, WAN1 and WAN2 have their own zones.
 2. **Members** - The underlay/overlay members that we want to intelligently steer traffic to.
-3. **Gateway** – IPs are left blank (0.0.0.0) for members using DHCP. UL1 has a static IP/Gateway. UL2 is using DHCP. These IPs are reused as next hops for any static routes that reference SD-WAN members or Zones.
+3. **Gateway** – IPs are left blank (0.0.0.0) for members using DHCP. UL1 and UL2 are using DHCP. These IPs are reused as next hops for any static routes that reference SD-WAN members or Zones.
 4. **Cost** – Can be used when applying a strategy of "Lowest Cost" in a rule. Explained further in the SD-WAN Rules section.
 5. **Priority** – Applied to static routes that reference SD-WAN members.
 
@@ -50,10 +50,10 @@ Display SD-WAN configuration on Branch1.
 
 The role of Performance SLAs (Health Checks) is to gather link health information and define thresholds to make steering decisions in SD-WAN rules.
 
-- This demo has a Performance SLA defined an Internet probe for local breakout traffic (DIA), a single SLA for both Hubs (HUB), and a Ringcental specific SLA.
+- This demo has a few Performance SLAs defined: an Internet probe for local breakout traffic (DIA), a single SLA for both Hubs (HUB), and a Ringcental specific SLA.
 
 > [!NOTE]
-> We generally recommend probes simply from spoke to hub (nothing further into core network)
+> We generally recommend probes simply from spoke to hub (nothing further into core network) since the primary goal is to pick the best overlay path between them.
 
 This demo has the following Performance SLAs defined:
 
@@ -83,6 +83,9 @@ Edit the HUB Performance SLA and explain key config details:
    - **Failures before inactive** – How many UNANSWERED probes before the link is considered "failed" state.
    - **Restore link after** – How many GOOD probes before it goes back to a "healthy" state.
 
+> [!TIP]
+> For the HUB performance SLA the Branch FGTs will reach out to the server 169.254.253.253 which is the "HUB1/2-Lo" loopback interface on both Hub FGTs. Since all HUB1/2 and HUB1/2-2 members are selected, checks will be ran across all four members.
+
 ### Performance SLA New Features
 
 Edit the HUB Performance SLA and explain key config details:
@@ -92,7 +95,11 @@ Edit the HUB Performance SLA and explain key config details:
 1. **Performance SLA**
    - **FortiGuard** – SLA targets defined in and downloaded from FortiGuard.
    - **Manual** – SLA targets configured by the administrator.
-2. **Embedded Measure Health** – SLA statistics and status forwarded to the hub. The server IP in the shown config exists on each hub. This is the destination the embedded information is sent to.
+2. **Embedded Measure Health** – SLA statistics and status forwarded to the hub as embedded data in the probes. The server IP in the shown config exists on each hub. This is the destination the embedded information is sent to.
+
+{{% notice note %}} 
+The Embedded Mesure Health only works between FortiGates supporting this custom feature. So this will not work when the defined server IP is a 3rd party product.
+{{% /notice %}}
 
 ---
 
@@ -150,6 +157,12 @@ Edit the DIA Rule and explain:
 
 - **HUB** – **HUB1** is preferred over **HUB2** in this template. 
   - This rule evaluates the overlays to **HUB1** and **HUB2**. The rules use member cost and then member order. Branch member preference and health is communicated upstream to the Hubs and from there to the client DC.
+  - For eBGP routes received from Cloud WAN, fib-best-match is the tie break for ECMP routes advertised from Cloud WAN down to the Branches. This allows Branches to select the best path based on things like shortest AS Path so region 1 destinations are preferred over HUB1 and region 2 to HUB2 in a normal state.
 - **Implicit rule** (bottom of the page) – Traffic that doesn't match an explicit rule will be load balanced to all members of SD-WAN (as long as a valid route exists). Based on routing setup in this lab, internet traffic should not traverse the VPN even if this rule is hit, as route priorities have been configured on overlay member interfaces. It should also be impossible for this rule to be hit since rules for all traffic that is and is not RFC-1918 are defined — this covers all IPv4 address space.
+
+{{% notice tip %}} 
+When you have ECMP paths and traffic is matching the implicit SDWAN rule, you may run into uneven usage because of the default load balancing algorithm. The default is set to **source-ip-based** which may favor one path heavily. You can use the command `set load-balance-mode source-dest-ip-based` to spread out traffic more evenly. Other options are **weight-based, usage-based, and measured-volume-based**. For more information, reference [**Fortinet Documentation**](https://docs.fortinet.com/document/fortigate/8.0.0/administration-guide/25967/equal-cost-multi-path).
+{{% /notice %}}
+
 
 ### This concludes this section
