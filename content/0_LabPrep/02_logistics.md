@@ -10,15 +10,15 @@ For AWS Immersion Days, Xperts, and other events, we will provide you the follow
   * **AWS sign in link**
   * **IAM User w/ console access**
   * **Password for the IAM User**
-  * **Terraform outputs with resource URLs**
+  * **Environment outputs with resource URLs, IPs, etc**
 
 Here is an example of what will be contained in the email:
 ```
 -=-=-=-=- (aws login info)
 console: https://workshop-1234.signin.aws.amazon.com/console
 regions: us-west-1 & us-west-2
-user: workshop
-pass: !SupErS3c6e7!
+user: <aws-login-info-example>
+pass: <aws-login-info-example>
 -=-=-=-=-
 
 -=-=-=-=- (ftnt cwan info)
@@ -40,8 +40,8 @@ pass: !SupErS3c6e7!
 -=-=-=-=-
 
 -=-=-=-=- (ftnt login info)
-username: admin
-password FORTInet23!
+username: <ftnt-login-info-example>
+password <ftnt-login-info-example>
  
 # scw-region1-fmg-login-urll = "https://1.2.3.4"
  
@@ -56,11 +56,6 @@ password FORTInet23!
 # route_controller_website_url = "http://scw-uw1-route-controller-123456789012.s3-website-us-west-1.amazonaws.com"
 -=-=-=-=-
 ```
-
-{{% notice note %}}
-
-**We recommend using our pre provisioned AWS accounts for the workshop as this provides the fastest hands on experience, without worrying about charges incurred on your AWS bill**.
-{{% /notice %}}
 
 ## Navigating the AWS Console
 

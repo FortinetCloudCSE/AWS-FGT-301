@@ -16,7 +16,7 @@ In this lab, we will focus on more advanced routing concepts within Cloud WAN in
 
 Picking up from the last section we now have attachment policies, segment actions to share routes between segments, and specified a segment to be isolated. In this section, you will need to create the appropriate Cloud WAN Core Network Policy to blackhole certain traffic before reaching the target VPC and create routing policies that will automatically summarize routes before advertising out to the hub FGTs. Finally you will configure prefix lists and route maps on the hub FortiGates to control what routes are advertised to Cloud WAN.
 
-![](image-cwan-diag.png)
+![](fgcp-cwan-tc1.png)
 
 ## Summarized Steps (click to expand each for details)
 
@@ -109,13 +109,11 @@ Technically you could solve the core problem by relying on security groups, NACL
 
 {{% expand title = "**Detailed Steps...**" %}}
 
-- **3.1:** Navigate to the **CloudFormation Console** and **toggle View Nested to off**.
-- **3.2:** Select the main template and select the **Outputs tab**.
-- **3.3:** Login to **scw-region1-hub1-fgt1**, using the outputs **scw-region1-hub1-login-url** and the credentials **`admin`**, and **`FORTInet123!`**.
-- **3.4:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
-- **3.5:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.1.0.0/24, 10.2.0.0/24, 10.17.0.0/24, 10.18.0.0/24**) are for the prod and dev segment VPCs. In a production environment you will likely have hundreds or thousands of VPC CIDRs as segments are global. So we want to summarize these into a single summary CIDR per region, normally in production you would likely want to have a summary route per segment per region.
+- **3.1:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **3.2:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
+- **3.3:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.1.0.0/24, 10.2.0.0/24, 10.17.0.0/24, 10.18.0.0/24**) are for the prod and dev segment VPCs. In a production environment you will likely have hundreds or thousands of VPC CIDRs as segments are global. So we want to summarize these into a single summary CIDR per region, normally in production you would likely want to have a summary route per segment per region.
 
-  {{% notice info %}}
+{{% notice info %}}
 Below is a table showing route limits for inbound and outbound advertised routes. For the full list of service quotas for Cloud WAN, reference [**AWS documentation**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-quotas.html#cloudwan-routing.title).
 
 | Quota                                                                    | Default |
@@ -131,10 +129,10 @@ Below is a table showing route limits for inbound and outbound advertised routes
 While the service quota for Cloud WAN shows that there can be up to 10,000 routes advertised from the core network to a Connect peer, this can be operationally hard to manage and troubleshoot. Since the majority of CIDRs being advertised will be VPC CIDRs, we can use routing policies to summarize these to simplify the hub and branch FGT route tables.
 
 Also, since the number of routes accepted from a Connect peer into Cloud WAN is limited to 1,000, you will likely need to implement summarization from the hub FGTs. This will be handled in the next use case.
-  {{% /notice %}}
+{{% /notice %}}
 
-- **3.6:** In the **Network Manager Console** navigate to the **Policy versions page** for your Core Network and select the latest policy version and **click Edit**.
-- **3.7:** Near the top of the screen in the **Choose policy view mode** section **select JSON**. **Select all and delete the current JSON** in the Network Manager Console. Then **copy the new policy below**, which contains a routing policy, and **paste this back into the Network Manager Console**. If completed correctly, **you should see line 200 showing `  "routing-policies": [`**.
+- **3.4:** In the **Network Manager Console** navigate to the **Policy versions page** for your Core Network and select the latest policy version and **click Edit**.
+- **3.5:** Near the top of the screen in the **Choose policy view mode** section **select JSON**. **Select all and delete the current JSON** in the Network Manager Console. Then **copy the new policy below**, which contains a routing policy, and **paste this back into the Network Manager Console**. If completed correctly, **you should see line 200 showing `  "routing-policies": [`**.
 
 ```
 {
@@ -383,34 +381,34 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 ![](image-t6-6.png)
 ![](image-t6-7.png)
 
-- **3.8:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. **Select the latest Policy version** and **click Edit**. Then navigate to the **Routing policies tab** and see the new policy created. Notice that the routing policy is directional and it is created as outbound. **Select the first rule and click Edit**. In the **Edit routing policy rule page** select the **Action** and **Conditions** dropdown boxes to see all options available.
+- **3.6:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. **Select the latest Policy version** and **click Edit**. Then navigate to the **Routing policies tab** and see the new policy created. Notice that the routing policy is directional and it is created as outbound. **Select the first rule and click Edit**. In the **Edit routing policy rule page** select the **Action** and **Conditions** dropdown boxes to see all options available.
 
-    ![](image-t6-8.png)
-    ![](image-t6-9.png)
-    ![](image-t6-10.png)
+![](image-t6-8.png)
+![](image-t6-9.png)
+![](image-t6-10.png)
 	
-- **3.9:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshot below to complete the configuration. **Pay attention to the Condition - Routing policy label** since we will need to use the same value later when editing the Connect attachments.
+- **3.7:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshot below to complete the configuration. **Pay attention to the Condition - Routing policy label** since we will need to use the same value later when editing the Connect attachments.
 
-    ![](image-t6-11.png)
-    ![](image-t6-12.png)
+![](image-t6-11.png)
+![](image-t6-12.png)
 
-- **3.10:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. Once **the latest Policy version shows Ready to execute**, select the version and **click View or apply change set**. On the next page click Apply change set. You will be returned to the Policy version page and see the new policy version is executing. In a few moments this will show as Execution succeeded.
+- **3.8:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. Once **the latest Policy version shows Ready to execute**, select the version and **click View or apply change set**. On the next page click Apply change set. You will be returned to the Policy version page and see the new policy version is executing. In a few moments this will show as Execution succeeded.
 
-- **3.11:** Navigate to the **attachments page** under your core network. Select the **scw-region1-sdwan-connect-attachment** and select the **Routing policy label tab** in the pane below and **click Create**. On the next page, specify `SummarizeVpcsRegion1and2` for the routing policy label to use and **click Create**. **Follow the same steps to configure the scw-region2-sdwan-connect-attachment**.
+- **3.9:** Navigate to the **attachments page** under your core network. Select the **scw-region1-sdwan-connect-attachment** and select the **Routing policy label tab** in the pane below and **click Create**. On the next page, specify `SummarizeVpcsRegion1and2` for the routing policy label to use and **click Create**. **Follow the same steps to configure the scw-region2-sdwan-connect-attachment**.
 
-    ![](image-t6-13.png)
-    ![](image-t6-14.png)
+![](image-t6-13.png)
+![](image-t6-14.png)
 
-- **3.12:** At first, you will see that the routing policy label is applied but there is no attachment routing policy association yet. After a few minutes you should refresh your browser and see that there is now an attachment routing policy association.
+- **3.10:** At first, you will see that the routing policy label is applied but there is no attachment routing policy association yet. After a few minutes you should refresh your browser and see that there is now an attachment routing policy association.
 
     ![](image-t6-15.png)
     ![](image-t6-16.png)
 
-- **3.13:** Login to **scw-region1-hub1-fgt1**, using the outputs **scw-region1-hub1-login-url** and the credentials **`admin`**, and **`FORTInet123!`**.
-- **3.14:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
-- **3.15:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.0.0.0/12, 10.16.0.0/12**) are the summary routes per region for region 1 and region 2 for all segments. As more VPCs are spun up and attached to the prod, dev, and sharedservices segments, if their VPC routes match the routing policy that was added, no new CIDRs will be seen on the hub and branch FGTs.
+- **3.11:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **3.12:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
+- **3.13:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.0.0.0/12, 10.16.0.0/12**) are the summary routes per region for region 1 and region 2 for all segments. As more VPCs are spun up and attached to the prod, dev, and sharedservices segments, if their VPC routes match the routing policy that was added, no new CIDRs will be seen on the hub and branch FGTs.
 
-    {{% /expand %}}
+{{% /expand %}}
 
 ###### 4) Use Case: Summarize routes from hub FGTs to Cloud WAN segments to hub FGTs
 
@@ -418,16 +416,14 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 
 - **4.1:** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the Branch 1 & 2 CIDRs for both regions are shown **10.32.0.32/28 and 10.48.0.32/28**. In a production environment you will likely have hundreds or thousands of branch deployments across premise around the world. So we want to summarize these into a single summary CIDR for both branch 1 & 2, normally in production you would likely want to have a summary route per geo or SDWAN region.
 
-- **4.2:** Navigate to the **CloudFormation Console** and **toggle View Nested to off**.
-- **4.3:** Select the main template and select the **Outputs tab**.
-- **4.4:** Login to **scw-region1-hub1-fgt1**, using the outputs **scw-region1-hub1-login-url** and the credentials **`admin`**, and **`FORTInet123!`**.
-- **4.5:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
-- **4.6:** Run the command **`get router info bgp summary`** and to get the list of IPs for the AWS Connect peers and branch FGT peers.
-- **4.7:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
+- **4.2:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **4.3:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
+- **4.4:** Run the command **`get router info bgp summary`** and to get the list of IPs for the AWS Connect peers and branch FGT peers.
+- **4.5:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
 
-  {{% notice info %}}
+{{% notice info %}}
 You will see a total of 4x 100.64.x.x BGP peers on each Hub and only 2 will be up at a given moment. This is because each Hub FGT is an FGCP pair where the primary and secondary FGTs have their own 2x BGP peers to Cloud WAN. So only the BGP peers meant for the current primary unit will be up.
-  {{% /notice %}}
+{{% /notice %}}
 
 ```
 scw-region1-hub1-fgt1 # get router info bgp summary
@@ -497,9 +493,9 @@ Origin codes: i - IGP, e - EGP, ? - incomplete
 
 Total number of prefixes 2
 ```
-- **4.8:** Notice that for the Connect peers, we are advertising each branch FGT local CIDR (**10.32.0.32/28, 10.48.0.32/28**). We want to summarize this to **10.32.0.0/11** as this will cover all branch FGTs for this SDWAN deployment.  To do this we are going to use prefix lists, route maps, a static route, a bgp network statement, and route-map settings for both Connect Peers and branch FGT peers. The goal is to only advertise the summary route to AWS but not to the branch FGTs so we do not affect ADVPN shortcuts between branches.
+- **4.6:** Notice that for the Connect peers, we are advertising each branch FGT local CIDR (**10.32.0.32/28, 10.48.0.32/28**). We want to summarize this to **10.32.0.0/11** as this will cover all branch FGTs for this SDWAN deployment.  To do this we are going to use prefix lists, route maps, a static route, a bgp network statement, and route-map settings for both Connect Peers and branch FGT peers. The goal is to only advertise the summary route to AWS but not to the branch FGTs so we do not affect ADVPN shortcuts between branches.
 
-- **4.9:** **Copy and paste** the CLI commands below **on both hub FGTs**. These are the prefix lists, route maps, and static route that will be common configuration. **Don't forget to run through this step on hub2 FGT**.
+- **4.7:** **Copy and paste** the CLI commands below **on both hub FGTs**. These are the prefix lists, route maps, and static route that will be common configuration. **Don't forget to run through this step on hub2 FGT**.
 
 ```
 ### Prefix list for summary for all branches
@@ -551,7 +547,7 @@ config router static
 end
 ```
 
-- **4.10:** Next, **copy the text below and modify** this with the correct Connect peer IPs for your deployment. These will be **unique to each hub FGT**. This is applying the prefix list and route map from the previous step to the correct neighbors. **Don't forget to run through this step on hub2 FGT**.
+- **4.8:** Next, **copy the text below and modify** this with the correct Connect peer IPs for your deployment. These will be **unique to each hub FGT**. This is applying the prefix list and route map from the previous step to the correct neighbors. **Don't forget to run through this step on hub2 FGT**.
 ```
 config router bgp
     config network
@@ -581,8 +577,8 @@ config router bgp
 end
 exec router clear bgp all
 ```
-- **4.11:** Run the command **`get router info bgp summary`** again and to get the list of IPs for the AWS Connect peers and branch FGT peers.
-- **4.12:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. **You should see that to AWS we are advertising the summary route, not each branch CIDR**. Also for the **branch FGTs, nothing has changed, as desired.  Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
+- **4.9:** Run the command **`get router info bgp summary`** again and to get the list of IPs for the AWS Connect peers and branch FGT peers.
+- **4.10:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. **You should see that to AWS we are advertising the summary route, not each branch CIDR**. Also for the **branch FGTs, nothing has changed, as desired.  Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
 ```
 scw-region1-hub1-fgt1 # get router info bgp summary 
 
@@ -638,11 +634,11 @@ Origin codes: i - IGP, e - EGP, ? - incomplete
 
 Total number of prefixes 2
 ```
-- **4.13:** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the Branch 1 & 2 CIDRs are not shown and now you see the summary route **10.32.0.0/11** instead.  **The route tab can be very slow to update** actual routes, so to see the changes **try switching the edge location or the segment** to see that each hub is advertising the same summary route and the local hub FGT's route is being preferred over the other region.
+- **4.11:** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the Branch 1 & 2 CIDRs are not shown and now you see the summary route **10.32.0.0/11** instead.  **The route tab can be very slow to update** actual routes, so to see the changes **try switching the edge location or the segment** to see that each hub is advertising the same summary route and the local hub FGT's route is being preferred over the other region.
 
-    ![](image-t6-17.png)
+![](image-t6-17.png)
 
-    {{% /expand %}}
+{{% /expand %}}
 
 
 ## Discussion Points

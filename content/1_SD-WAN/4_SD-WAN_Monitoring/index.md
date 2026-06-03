@@ -19,15 +19,6 @@ There are multiple ways to monitor your Enterprise's SD-WAN Health:
 
 - The wheel icons identify the **Hubs**. Computer/FGT icons identify the **Branches**.
 
-{{% notice tip %}}
-If the Branch FGTs are showing in different locations that can be addressed with updating the device settings. In ***FMG > Device Manager > Device & Groups > Managed FortiGate*** Right click either Branch FGT and select edit. In the **Geographic Coordinate** section, click **Show Map**. Then on the next page enter the following coordinates for the Branch FGTs and click **OK twice** to save the coordinates:
-
-FGT | Latitude | longitude
---|--|--
-Branch1 | 32.4 | -92.2
-Branch2 | 35.2 | -90
-{{% /notice %}}
-
   ![SPOKES](printscreen-04-1.png)
 
 - Connections between FGTs can be hovered on for additional information or drilled down on.
@@ -172,5 +163,17 @@ With these logs you can show:
 - In the next section (SD-WAN Link Impairment), you will come back to this view to show traffic has moved to **'port2'**.
 
 ![SD-WAN STEERING](printscreen-04-21.png)
+
+### SD-WAN Steering HUB Traffic Logs
+
+***Navigation: FMG → Log View → Custom Views → SD-WAN Steering HUB***
+
+With these logs you can show:
+
+- HUB traffic for region 1 destinations getting steered out of **'HUB1-VPN1'** via SD-WAN Rule #2 named **'HUB'**.
+- HUB traffic for region 2 destinations getting steered out of **'HUB2-VPN1'** via SD-WAN Rule #2 named **'HUB'**.
+- In the next section (SD-WAN Link Impairment), you will come back to this view to show traffic has moved to **'HUB1-VPN1-2'** and **'HUB2-VPN1-2'**.
+
+![SD-WAN STEERING](printscreen-04-22.png)
 
 ### This concludes this section

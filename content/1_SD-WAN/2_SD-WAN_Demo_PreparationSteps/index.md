@@ -21,9 +21,11 @@ This environment already is preconfigured with an SD-WAN Overlay Template (ie SO
 - Enable SOT and BGP provisioning template visibility in the FMG under FMG>Device Manager>Provisioning Templates>Feature Visibility
   {{% /notice %}}
 
-**Navigate to:**
 
-***FMG > Device Manager > Provisioning Templates > SD-WAN Overlay***
+
+**Login** to your FMG using `scw-region1-fmg-login-url` in your [**environment outputs**](../0_labprep/02_logistics)
+
+***Navigate: FMG → Device Manager → Provisioning Templates → SD-WAN Overlay***
  - Select and Edit the existing SOT
 
 ![image](sot.png?width=950px)
@@ -57,7 +59,7 @@ In the HUB section
     - The Cost is 10
 
 {{% notice info %}}
-The link cost can be explicitly configured in a more granular way for in and out of SLA scenarios in the SD-WAN provisioning template. We will review that in the SD-WAN Configuration Overview section. This will allow each branch to reach out to each region's Hub FGT deployment directly to avoid cross regional data charges in a normal state. IE branch traffic for region1 destination goes to region1-hub1, and region2 destination goes to region2-hub2.
+The link cost can be explicitly configured in a more granular way for in and out of SLA scenarios in the SD-WAN provisioning template. We will review that in the SD-WAN Configuration Overview section. This will allow each branch to reach out to each region's Hub FGT deployment directly to avoid cross regional data charges in a normal state. IE branch traffic for region1 destinations goes to region1-hub1, and region2 destinations goes to region2-hub2.
 {{% /notice %}}
 
 
@@ -66,7 +68,7 @@ In the Branch section
  - Automatic Branch ID Assignment is enabled
 
 {{% notice info %}}
-Automatic Branch ID Assignment uses a metadata variable **branch_id** for configuring unique values in the provisioning templates (BGP router id, loopback IP, etc) for each branch location. We will get into metadata variables in more detail later in this section.
+Automatic Branch ID Assignment uses a metadata variable **branch_id** for configuring unique values in the provisioning templates (BGP router id, loopback IP, etc) for each branch location. Each Branch FGT will have a unique value for this metadata variable. We will get into metadata variables in more detail later in this section.
 {{% /notice %}}
 
 Click Next of complete step 2
@@ -82,18 +84,16 @@ In the HUB section
  - **Primary Hub**
    - WAN Underlay 1
      - 'port1' is selected
-	 - **Update** the **Override IP** to the public IP listed in `scw-region1-hub1-login-url` in your environment outputs
-   - Network Advertisement - Connnected is selected
+	 - **Update** the **Override IP** to the public IP listed in `scw-region1-hub1-login-url` in your [**environment outputs**](../0_labprep/02_logistics)
+   - Network Advertisement - Static is selected and below it is a CIDR the Primary Hub is in
      - No interface is selected as the Hub FGTs will advertise BGP routes learned from Cloud WAN to the Branches
 ![image](sotprihubnetwork.png?width=950px)
 
  - **Secondary Hub**
    - WAN Underlay 1
      - 'port1' is selected
-	 - **Update** the **Override IP** to the public IP listed in `scw-region2-hub2-login-url` in your environment outputs
-   - Network Advertisement - Connnected is selected
-     - No interface is selected as the Hub FGTs will advertise BGP routes learned from Cloud WAN to the Branches
-![image](sotsechubnetwork.png?width=950px)
+	 - **Update** the **Override IP** to the public IP listed in `scw-region2-hub2-login-url` in your [**environment outputs**](../0_labprep/02_logistics)
+   - Network Advertisement - Static is selected and below it is a CIDR the Secondary Hub is in
 
 {{% notice info %}}
 We need to select **Override IP** as the Hub FGTs are running in AWS and are using [**Elastic IPs**](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-eips.html) (EIP) for a public static IP address for internet communications. These EIPs behave like an upstream NAT rule so the FGTs and FMG will not see this public IP on the FGT's interface configuration. Thus we are overriding the IP value so the Branch FGTs point to the correct public IP to reach the Hubs.
@@ -130,15 +130,11 @@ In the Branch Section we have the following selected:
 ![image](branchul1.png?width=950px)
 
 {{% notice info %}}
-The Branch underlays are specified as [**metadata variables**](https://docs.fortinet.com/document/fortimanager/7.6.6/administration-guide/478643/adom-level-metadata-variables). This allows us to define different interfaces for various Branch FGTs deployed in an environment. These variables can actually be used in scripts, templates, firewall address objets, IP pools, VIPs, and more.
+The Branch underlays are specified as [**metadata variables**](https://docs.fortinet.com/document/fortimanager/7.6.6/administration-guide/478643/adom-level-metadata-variables). This allows us to define different interfaces for various Branch FGTs deployed in an environment. These variables can actually be used in scripts, templates, firewall address objects, IP pools, VIPs, and more.
 {{% /notice %}}
 
 {{% notice info %}}
-SD-WAN CSEs, please revise this as needed. For example, how will the VPN tunnels be configured with both WAN underlays in transport group 1 vs 2.
-
-Tim's excerpt: Transport groups are used to define what overlay interfaces branches can use to build ADVPN tunnels on.  Only overlays with matching transport groups can build dynamic tunnels with each other.
-
-Googles excerpt: Transport Groups classify underlay links so FortiManager knows which tunnels to build dynamically. They are typically assigned as follows: Transport Group 1 is assigned to all Public Internet underlay connections. Transport Group 2 is assigned to all private, MPLS/leased line connections. By grouping similar underlay types (e.g., grouping all local broadband and LTE connections into Group 1), FortiGate builds ADVPN shortcuts between branches and hubs over like-to-like transports while keeping physically separate networks appropriately segregated.
+Transport groups are used to define what overlay interfaces branches can use to build ADVPN shortcut tunnels on.  Only overlays with matching transport groups can build dynamic tunnels with each other, ie overlay shortcuts.  For example UL1 could be general broadband in transport group 1 and UL2 could be a private path like MPLS or Direct Connect in transport group 2.
 {{% /notice %}}
 
 &nbsp;  
@@ -170,11 +166,11 @@ Review the configuration settings and click finish to save the changes made (ie 
 &nbsp;
 
 ### Review and Edit Metadata Variables
-Before deploying the provisioning templates and policy packages to the Branch and Hub FGTs, we need to review and update a few metadata variables we are using.
+Before deploying the provisioning templates and policy packages to the Hub and Branch FGTs, we need to review and update a few metadata variables we are using.
 
 **Navigate to:**
 
-***FMG > Device Manager > Device & Groups > Managed FortiGate***
+***FMG → Device Manager → Device & Groups → Managed FortiGate***
   - Right click either Branch1 or Branch2 FGT and select Edit Variable Mapping
   - Notice the variables **$(ul1)** and **$(ul2)** are defined as 'port1' and 'port2'
   - Click OK to close the window
@@ -182,7 +178,7 @@ Before deploying the provisioning templates and policy packages to the Branch an
 ![image](branchmv2.png?width=950px)
 
   - For the Hub FGTs we are using the variables below in a CLI script to configure the BGP neigbors to peer with Cloud WAN CNEs
-  - **Edit each Hub FGT and update the variable mapping values using the values in your environment outputs**
+  - **Edit each Hub FGT and update the variable mapping values using the values in your** [**environment outputs**](../0_labprep/02_logistics)
   - **Click OK to save the changes** and close the window
 
 {{% notice tip %}}
@@ -207,7 +203,7 @@ If you do not click the check mark next to the variable mapping the value is **N
 
 **Navigate to:**
 
-***FMG > Device Manager > Provisioning Templates > 'Click three dots next to static route to expand' > CLI***
+***FMG → Device Manager → Provisioning Templates → 'Click three dots next to static route to expand' → CLI***
   - In the CLI Templates list, find the template **Hub_Cloud_WAN_BGP** and notice that the cwan metadata variables are being referenced here
   - Select and edit the template to view how the variables are being referenced in a CLI script
   - Both Hubs are using the same CLI script but have different values being used for each Hub FGT
@@ -256,7 +252,7 @@ Let’s start by pushing the configurations to the Hubs.
  - Install Wizard - Validate Devices (Hub) (3/4)
    - Hub1 and Hub2 should be selected
    - Click ‘Install’
-![Config Deployment 3](hub1installwiz4.png?width=750px)
+![Config Deployment 3](hub1installwiz3a.png?width=750px)
 
 &nbsp;
 

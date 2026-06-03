@@ -19,7 +19,7 @@ Template Groups are a grouping of individual GUI/CLI Templates that can be assig
 
 ## Metadata Variables
 
-Metadata variables are configuration objects that can have multiple per-device mappings. These can be referenced in Templates so they can be applied to multiple device.
+Metadata variables are configuration objects that can have multiple per-device mappings. These can be referenced in Templates so they can be applied to multiple devices.
 
 - Metadata variable `lan_subnets` can be referenced in a GUI/CLI template or in a Firewall Address Object by using `$(lan_subnets)` notation.
 
@@ -131,17 +131,14 @@ The CSV for this environment has already been provided.
 After finishing the CSV import, the model devices are created in Device Manager. You are now ready to connect the FortiGates to FortiManager.
 
 {{% notice tip %}}
-After the FGTs come online and communicate to FMG successfully, they will be automatically onboarded and their provisioning templates and policy packages installed automatically.
+When using a Device Blueprint, you no longer need to perform an 'Install Policy Package & Device Settings' Install on the newly created model devices. After the FGTs come online and communicate to FMG successfully, they will be automatically onboarded and their provisioning templates and policy packages installed automatically.
 {{% /notice %}}
 
 ![AFTER IMPORT](printscreen-06-13.png)
 
-> [!NOTE]
-> When using a Device Blueprint, you no longer need to perform an 'Install Policy Package & Device Settings' Install on the newly created model devices.
-
 ## Verifying Variable Mappings
 
-Before provisioning BranchX and BranchY, you can show your customer how the `.CSV` assigned the serial number, Policy Package, Provisioning Templates, and defined the metadata variable mappings.
+Before provisioning BranchX and BranchY, you can see how the `.CSV` assigned the serial number, Policy Package, Provisioning Templates, and defined the metadata variable mappings.
 
 Right-click on BranchX and select **Edit Variable Mapping**. Here you can view or edit the mappings imported from the CSV import.
 
