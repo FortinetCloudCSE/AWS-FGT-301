@@ -6,17 +6,13 @@ weight: 10
 |      |   |  
 |:----:|:--|
 | **Goal**                   | Utilize Cloud WAN components and Core Network Policy to provide a secured & orchestrated network.
-| **Task**                   | Update Core Networking Policy with logic to automate connecting resources to segments and propagating routes to allow secured traffic flow.
-| **Validation** | Confirm east/west connectivity from EC2 Instance-A via Ping, HTTP.
+| **Task**                   | Update Core Networking Policy with logic to blackhole certain routes and summarize routes between Cloud WAN and HUB FGTs.
+| **Validation** | Confirm routing updates in Cloud WAN Segments and HUB FGT routing tables.
 
 ## Introduction
 In this lab, we will focus on more advanced routing concepts within Cloud WAN in a multi-region deployment. In the Cloud WAN key concepts, you worked with the core building blocks that helped you build a WAN with broad brush strokes. Now we will focus on tailoring the routing for common use cases.
 
-![](image-cwan-overview.png)
-
 Picking up from the last section we now have attachment policies, segment actions to share routes between segments, and specified a segment to be isolated. In this section, you will need to create the appropriate Cloud WAN Core Network Policy to blackhole certain traffic before reaching the target VPC and create routing policies that will automatically summarize routes before advertising out to the hub FGTs. Finally you will configure prefix lists and route maps on the hub FortiGates to control what routes are advertised to Cloud WAN.
-
-![](fgcp-cwan-tc1.png)
 
 ## Summarized Steps (click to expand each for details)
 
@@ -24,9 +20,7 @@ Picking up from the last section we now have attachment policies, segment action
 
 {{% expand title = "**Detailed Steps...**" %}}
 
-![](image-cwan-overview.png)
-
-Below are two tables of how [**route evaluation works within Cloud WAN**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-create-attachment.html#cloudwan-route-evaluation). Understanding this is the foundation for understanding what routes will be selected and if/when you need to apply routing policies or blackhole routes to achieve the desired routing outcome.
+Below are two tables of how [**route evaluation works within Cloud WAN**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-route-evaluation.html). Understanding this is the foundation for understanding what routes will be selected and if/when you need to apply routing policies or blackhole routes to achieve the desired routing outcome.
 
 | Step | Evaluation Stage                    | Criteria                                  | What Happens                                           |
 | ---- | ----------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
@@ -35,7 +29,7 @@ Below are two tables of how [**route evaluation works within Cloud WAN**](https:
 | 3    | Local VPC Preference                | Local VPC Propagated                      | VPC-propagated routes in the same Region are preferred over BGP routes |
 | 4    | BGP Path Selection (unequal paths)  | AS_PATH length → MED                      | Shortest AS path wins, then lowest MED                 |
 | 5    | BGP Source Preference (equal paths) | Attachment type priority                  | See ordered list below                                 |
-| 6    | Tie-breaker                         | Identical routes from multiple sources    | Deterministic random selection                         |
+| 6    | Tie-breaker                         | Identical routes from multiple sources (#4 in ordered list below)   | Deterministic random selection (select 1 attachment)|
 
 If route evaluation is at step 5, this is the attachment priority used to determine the tie-breaker.
 
@@ -46,7 +40,7 @@ If route evaluation is at step 5, this is the attachment priority used to determ
 | 3        | VPN            | Site-to-Site VPN propagated routes           |
 | 4        | Other sources  | TGW peering, cross-region (CNE-to-CNE), etc. |
 
-Below is a table of the stages for routes as they are handled by Cloud WAN control plane. Understanding this helps you know which Cloud WAN policy section to use to prefer, modify, or drop routes and where this is occurring in relation to route evaluation.
+Below is a table showing the stages of route handling by Cloud WAN control plane. Understanding this helps you know which Cloud WAN policy section to use to prefer, modify, or drop routes and where this is occurring in relation to route evaluation.
 
 | Stage                       | Purpose                                                                          | Tool                                    | When it Happens (Relative to Evaluation)     |
 | --------------------------- | -------------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------- |
@@ -56,16 +50,19 @@ Below is a table of the stages for routes as they are handled by Cloud WAN contr
 | Route evaluation            | Select best path (longest prefix, static vs dynamic, BGP attributes, etc.)       | AWS route evaluation logic              | **After routing policies**                   |
 | Traffic enforcement         | Force traffic drop regardless of selected route                                  | Blackhole routes (segment-actions)      | **After route selection (forwarding stage)** |
 
-
-- **Route Admission**: Working from the top down, we are receiving routes from an attachment (either from Connect or VPC attachments). The attachment policies control which segment an attachment belongs to but does not share routes anywhere outside the segment yet. If the segment that the attachment is tied to is isolated, VPC CIDRs will not be propagated within that segment, however this does not stop the VPC CIDR from being shared to other segments if a segment action is defined to share that segment.
-- **Route Propagation**: Sharing in segment actions allow routes from one segment to be propagated or advertised into other segments. This is explicit and broad as there can be many routes within a segment since they span multiple regions.
-- **Route Policy Processing**: Routing policies are an ordered set of match + action rules. You can match on conditions like prefix-equals/prefix-in-cidr/community-in-list/etc and then apply actions such as drop/allow/summarize/prepend-as-list/add-community/etc. These policies are allow applied with a specified directionality ie inbound or outbound to control route propagation. Routing policies are applied at the attachment (typically connect, vpn, direct connect, etc) and also at the segment level by including this in your sharing in segment actions definition.
-- **Route Evaluation**: This is defined above in the first two tables above and is critical in understanding route selection with or without routing policies.
-- **Traffic Enforcement**: Regardless of what decisions were made upstream, you can explicitly define traffic to be dropped. The black hole routes do not affect route propagation between segments, it only has a scope limited to the segment it is defined in.
-
-  {{% notice info %}}
+{{% notice info %}}
 When applying a routing policy that drops traffic, modify BGP attributes like local preference, etc this is actually handled before BGP path selection is made. Referencing the table above for route evaluation order, the routing policy would sit after step 3 (Local VPC Preference) and before step 4 (BGP Path Selection). Also, while not explicitly documented Cloud WAN follows a best-path selection similar to standard BGP where it will prioritize local preference before AS_Path and then MED.
-  {{% /notice %}}
+{{% /notice %}}
+
+- **Route Admission**: Working from the top down, we are receiving routes from an attachment (either from Connect, VPC, or Direct Connect attachments). The attachment policies control which segment an attachment belongs to but does not share routes anywhere outside the segment yet. If the segment that the attachment is tied to is isolated, VPC CIDRs will not be propagated within that segment, however this does not stop the VPC CIDR from being shared to other segments if a segment action is defined to share that segment or if a Peer for Connect or Direct Connect is associated to the segment.
+
+- **Route Propagation**: Sharing in segment actions allow routes from one segment to be propagated or advertised into other segments. This is explicit and broad as there can be many routes within a segment since they span multiple regions.
+
+- **Route Policy Processing**: Routing policies are an ordered set of match + action rules. You can match on conditions (ie prefix-equals, prefix-in-cidr, community-in-list, etc) and then apply actions (ie drop, allow, summarize, prepend-as-list, add-community, etc). These policies are always applied with a specified directionality (ie inbound or outbound) to control route propagation. Routing policies are applied at the attachment (ie Connect, Vpn, Direct Connect, etc) and also at the segment level by including this in your sharing in segment actions definition.
+
+- **Route Evaluation**: This is defined above in the first two tables above and is critical in understanding route selection with or without routing policies.
+
+- **Traffic Enforcement**: Regardless of what decisions were made upstream, you can explicitly define traffic to be dropped. The black hole routes do not affect route propagation between segments or a Connect or Direct Connect Peer, it only has a scope limited to the segment it is defined in.
 
 {{% /expand %}}
 
@@ -74,43 +71,51 @@ When applying a routing policy that drops traffic, modify BGP attributes like lo
 {{% expand title = "**Detailed Steps...**" %}}
 
 - **2.1** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the SDWAN VPC CIDRs for both regions are shown **10.0.0.0/24 and 10.16.0.0/24**. The workload segments should not have direct access to the FGTs interfaces or anything deployed in the SDWAN VPCs. Currently not only does the production segment have these CIDRs propagated, but also the development and sharedservices segments.
-    ![](image-t6-1.png)
 
-  {{% notice info %}}
+![](image-t6-1.png)
+
+{{% notice info %}}
 You may think that you could solve this problem by associating the SDWAN VPC attachments to one segment, ie sdwan-vpc, and the SDWAN Connect attachments to another segment, ie sdwan-connect, and then creating the segment sharing statements for just sdwan-connect to prod/dev/sharedservices. However, according to [**AWS documentation**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-connect-attachment.html#cloudwan-connect-tlc) both the Connect (including Tunnel-less Connect) attachments must be in the same segment as the underlying transport VPC attachment. 
 
 Technically you could solve the core problem by relying on security groups, NACLS, FortiOS trusted hosts, and FortiOS local-in policies. However we are showing how to do this across multiple deployments in broad strokes. So we will solve this use case with other features in the core networking policy.
-  {{% /notice %}}
+{{% /notice %}}
   
 - **2.2:** In the **Network Manager Console** navigate to the **Policy versions page** for your Core Network and select the latest policy version and **click Edit**.
+
 - **2.3:** Navigate to the **Segment actions tab** find the **Routes section** and click **Create**. Use the table below to create the blackhole routes needed.
-    ![](image-t6-2.png)
+
+![](image-t6-2.png)
 	
-	Segment From | Destination CIDR block | Blackhole
-	---|---|---|---
-	production | 10.0.0.0/24 | Checked
-	production | 10.16.0.0/24 | Checked
-	development | 10.0.0.0/24 | Checked
-	development | 10.16.0.0/24 | Checked
-	sharedservices | 10.0.0.0/24 | Checked
-	sharedservices | 10.16.0.0/24 | Checked
+Segment From | Destination CIDR block | Blackhole
+---|---|---|---
+production | 10.0.0.0/24 | Checked
+production | 10.16.0.0/24 | Checked
+development | 10.0.0.0/24 | Checked
+development | 10.16.0.0/24 | Checked
+sharedservices | 10.0.0.0/24 | Checked
+sharedservices | 10.16.0.0/24 | Checked
 
 - **2.4:** Once completed, you should see the following routes in the routes section. 
-    ![](image-t6-3.png)
+&nbsp;
+
+![](image-t6-3.png)
 
 - **2.5** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. Once **the latest Policy version shows Ready to execute**, select the version and **click View or apply change set**. On the next page click Apply change set. You will be returned to the Policy version page and see the new policy version is executing. In a few moments this will show as Execution succeeded.
 
 - **2.6:** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the SDWAN VPC CIDRs are still there but the route type and state show **Static and BLACKHOLE**. These routes will override any other route with the exact CIDR match and drop the traffic.
-    ![](image-t6-4.png)
 
-    {{% /expand %}}
+![](image-t6-4.png)
+
+{{% /expand %}}
 
 ###### 3) Use Case: Summarize routes from Cloud WAN segments to hub FGTs
 
 {{% expand title = "**Detailed Steps...**" %}}
 
 - **3.1:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+
 - **3.2:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
+
 - **3.3:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.1.0.0/24, 10.2.0.0/24, 10.17.0.0/24, 10.18.0.0/24**) are for the prod and dev segment VPCs. In a production environment you will likely have hundreds or thousands of VPC CIDRs as segments are global. So we want to summarize these into a single summary CIDR per region, normally in production you would likely want to have a summary route per segment per region.
 
 {{% notice info %}}
@@ -132,6 +137,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 {{% /notice %}}
 
 - **3.4:** In the **Network Manager Console** navigate to the **Policy versions page** for your Core Network and select the latest policy version and **click Edit**.
+
 - **3.5:** Near the top of the screen in the **Choose policy view mode** section **select JSON**. **Select all and delete the current JSON** in the Network Manager Console. Then **copy the new policy below**, which contains a routing policy, and **paste this back into the Network Manager Console**. If completed correctly, **you should see line 200 showing `  "routing-policies": [`**.
 
 ```
@@ -379,17 +385,21 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 ```
 
 ![](image-t6-6.png)
+
 ![](image-t6-7.png)
 
-- **3.6:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. **Select the latest Policy version** and **click Edit**. Then navigate to the **Routing policies tab** and see the new policy created. Notice that the routing policy is directional and it is created as outbound. **Select the first rule and click Edit**. In the **Edit routing policy rule page** select the **Action** and **Conditions** dropdown boxes to see all options available.
+- **3.6:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. **Select the latest Policy version** and **click Edit**. Then navigate to the **Routing policies tab** and see the new policy created. Notice that the routing policy is directional and it is created as outbound. **Select the first rule and click Edit**. In the **Edit routing policy rule page** select the **Action** and **Conditions** dropdown boxes to see all options available. Then **click Cancel** to back out.
 
 ![](image-t6-8.png)
+
 ![](image-t6-9.png)
+
 ![](image-t6-10.png)
 	
-- **3.7:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshot below to complete the configuration. **Pay attention to the Condition - Routing policy label** since we will need to use the same value later when editing the Connect attachments.
+- **3.7:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshots below to complete the configuration. **Pay attention to the Condition - Routing policy label** since we will need to use the same value later when editing the Connect attachments.
 
 ![](image-t6-11.png)
+
 ![](image-t6-12.png)
 
 - **3.8:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. Once **the latest Policy version shows Ready to execute**, select the version and **click View or apply change set**. On the next page click Apply change set. You will be returned to the Policy version page and see the new policy version is executing. In a few moments this will show as Execution succeeded.
@@ -397,16 +407,20 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 - **3.9:** Navigate to the **attachments page** under your core network. Select the **scw-region1-sdwan-connect-attachment** and select the **Routing policy label tab** in the pane below and **click Create**. On the next page, specify `SummarizeVpcsRegion1and2` for the routing policy label to use and **click Create**. **Follow the same steps to configure the scw-region2-sdwan-connect-attachment**.
 
 ![](image-t6-13.png)
+
 ![](image-t6-14.png)
 
 - **3.10:** At first, you will see that the routing policy label is applied but there is no attachment routing policy association yet. After a few minutes you should refresh your browser and see that there is now an attachment routing policy association.
 
-    ![](image-t6-15.png)
-    ![](image-t6-16.png)
+![](image-t6-15.png)
+	
+![](image-t6-16.png)
 
 - **3.11:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+
 - **3.12:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
-- **3.13:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.0.0.0/12, 10.16.0.0/12**) are the summary routes per region for region 1 and region 2 for all segments. As more VPCs are spun up and attached to the prod, dev, and sharedservices segments, if their VPC routes match the routing policy that was added, no new CIDRs will be seen on the hub and branch FGTs.
+
+- **3.13:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.0.0.0/12, 10.16.0.0/12**) are the summary routes per region for region 1 and region 2 for all segments. If you do not see the summary routes yet, give it a few minutes. As more VPCs are spun up and attached to the prod, dev, and sharedservices segments, if their VPC routes match the routing policy that was added, no new CIDRs will be seen on the hub and branch FGTs.
 
 {{% /expand %}}
 
@@ -417,8 +431,11 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 - **4.1:** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the Branch 1 & 2 CIDRs for both regions are shown **10.32.0.32/28 and 10.48.0.32/28**. In a production environment you will likely have hundreds or thousands of branch deployments across premise around the world. So we want to summarize these into a single summary CIDR for both branch 1 & 2, normally in production you would likely want to have a summary route per geo or SDWAN region.
 
 - **4.2:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+
 - **4.3:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
+
 - **4.4:** Run the command **`get router info bgp summary`** and to get the list of IPs for the AWS Connect peers and branch FGT peers.
+
 - **4.5:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
 
 {{% notice info %}}
@@ -548,6 +565,7 @@ end
 ```
 
 - **4.8:** Next, **copy the text below and modify** this with the correct Connect peer IPs for your deployment. These will be **unique to each hub FGT**. This is applying the prefix list and route map from the previous step to the correct neighbors. **Don't forget to run through this step on hub2 FGT**.
+
 ```
 config router bgp
     config network
@@ -577,8 +595,11 @@ config router bgp
 end
 exec router clear bgp all
 ```
+
 - **4.9:** Run the command **`get router info bgp summary`** again and to get the list of IPs for the AWS Connect peers and branch FGT peers.
+
 - **4.10:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. **You should see that to AWS we are advertising the summary route, not each branch CIDR**. Also for the **branch FGTs, nothing has changed, as desired.  Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
+
 ```
 scw-region1-hub1-fgt1 # get router info bgp summary 
 
@@ -659,7 +680,7 @@ Total number of prefixes 2
 - Jumbo frames (8500 bytes) are supported for all attachments except VPN (1500 bytes)
 
 {{% notice tip %}}
-Once completed with this task, complete the quiz below as an individual whenever you are ready.
+TODO... Once completed with this task, complete the quiz below as an individual whenever you are ready.
 {{% /notice %}}
 
 ### This concludes this section
