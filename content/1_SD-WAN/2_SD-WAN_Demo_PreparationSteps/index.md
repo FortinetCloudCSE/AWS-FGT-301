@@ -100,7 +100,7 @@ We need to select **Override IP** as the Hub FGTs are running in AWS and are usi
 
 You can technically configure multiple network interfaces or ENIs (Elastic Network Interface) on an EC2 instance in AWS. However, there is a limit of how many interfaces you can attach based on the instance type and size. Generally, if you want more than 4x interfaces in AWS, you will need to use a *.4xlarge or bigger instance size. Reference [**AWS Documentation**](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AvailableIpPerENI.html) for more information.
 
-It is generally recommended to have a public and private data plane interface and even dedicated managment interface if desired. However, there is typically no need for multiple public data plane interfaces as AWS provides resiliency and automatic recovery for any hardware or software failures. Also, a design using multiple availability zones provides resiliency and automatic recovery for availability zone failures.
+It is generally recommended to have a public and private data plane interface and even dedicated management interface if desired. However, there is typically no need for multiple public data plane interfaces as AWS provides resiliency and automatic recovery for any hardware or software failures. Also, a design using multiple availability zones provides resiliency and automatic recovery for availability zone failures.
 
 In this demo the Hub FGTs are actually unicast FGCP Active-Passive clusters deployed across 2x availability zones to provide a more fault tolerant design and automatically failover data plane routes and EIPs between the FGTs.
 {{% /notice %}} 
@@ -112,7 +112,7 @@ In this demo the Hub FGTs are actually unicast FGCP Active-Passive clusters depl
 ![image](sotrm1.png?width=950px)
 
 {{% notice info %}}
-SD-WAN CSEs, is there something that can be noted here about the signaling? Is there a section I need to include/call out later?
+SD-WAN In and Out of SLA Priorities are configured under each SD-WAN Member and translated to BGP MED on the HUB. We explicitly set these values later in the SD-WAN Configuration Overview section. Reference [**Fortinet Documentation**](https://docs.fortinet.com/document/fortigate/7.6.0/sd-wan-new-features/460015/map-sd-wan-member-priorities-to-bgp-med-attribute-when-spoke-advertises-routes-using-ibgp-to-hub-7-6-1) for more information.
 {{% /notice %}}
 
 In the Branch Section we have the following selected:
@@ -124,7 +124,7 @@ In the Branch Section we have the following selected:
    - '$(ul2)' is selected
    - Cost is 1
    - Transport Group is 1
- - Network Advertisement - Connnected selected
+ - Network Advertisement - Connected selected
    - 'port3' is selected as this is our LAN interface
 
 ![image](branchul1.png?width=950px)
@@ -177,7 +177,7 @@ Before deploying the provisioning templates and policy packages to the Hub and B
 ![image](branchmv1.png?width=950px)
 ![image](branchmv2.png?width=950px)
 
-  - For the Hub FGTs we are using the variables below in a CLI script to configure the BGP neigbors to peer with Cloud WAN CNEs
+  - For the Hub FGTs we are using the variables below in a CLI script to configure the BGP neighbors to peer with Cloud WAN CNEs
   - **Edit each Hub FGT and update the variable mapping values using the values in your** [**environment outputs**](../0_labprep/02_logistics)
   - **Click OK to save the changes** and close the window
 

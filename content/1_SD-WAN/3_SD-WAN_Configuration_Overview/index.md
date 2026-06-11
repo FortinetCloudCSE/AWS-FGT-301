@@ -76,7 +76,7 @@ Edit the HUB Performance SLA and explain key config details:
    - If 2 entries are used, **both** MUST be considered unreachable for the health check to be considered failed.
    - Only the first "Server" in the list will be used when displaying stats, but both are being actively probed.
 3. **Participants** – SD-WAN member interface(s) used in this SLA.
-4. **SLA Target** – Thresholds set to be used in a lowest cost or maximise bandwidth rule.
+4. **SLA Target** – Thresholds set to be used in a lowest cost or maximize bandwidth rule.
    - Multiple threshold sets can be defined for different app tolerances if desired.
 5. **Link Status**:
    - **Check Interval** – How frequently the probes are sent, default is 500ms (½ second).
@@ -98,7 +98,7 @@ Edit the HUB Performance SLA and explain key config details:
 2. **Embedded Measure Health** – SLA statistics and status forwarded to the hub as embedded data in the probes. The server IP in the shown config exists on each hub. This is the destination the embedded information is sent to.
 
 {{% notice note %}} 
-The Embedded Mesure Health only works between FortiGates supporting this custom feature. So this will not work when the defined server IP is a 3rd party product.
+The Embedded Measure Health only works between FortiGates supporting this custom feature. So this will not work when the defined server IP is a 3rd party product.
 {{% /notice %}}
 
 ---
@@ -124,6 +124,88 @@ Previously when going through the SOT wizard there was a note that we are allowi
   - Under SD-WAN Zones, select and edit the HUB1-VPN1 and HUB2-VPN1 and expand Advanced Options and see that **cost and priority** are set to **10** and **priority-in-sla** is set to **10** and **priority-in-sla** is set to **110**
   - Under SD-WAN Zones, select and edit the HUB1-VPN1-2 andHUB2-VPN1-2 and expand Advanced Options and see that **cost** is set to **11** and **priority** is set to **10** and **priority-in-sla** is set to **11** and **priority-in-sla** is set to **111**
   - Under SD-WAN Rules, select and edit the HUB rule and see that **Tie Break** is set to **Best Match**
+
+**Note** the priority-in/out-sla values are shared with the Hub FGTs via the embedded information in the ICMP Health Check. On the Hub FGT this is translated into BGP MED values to use based on current SLA status. Reference [**Fortinet Documentation**](https://docs.fortinet.com/document/fortigate/7.6.0/sd-wan-new-features/460015/map-sd-wan-member-priorities-to-bgp-med-attribute-when-spoke-advertises-routes-using-ibgp-to-hub-7-6-1) for more information.
+
+For a quick example of how the embedded information from the Branches ICMP Health Checks turn into BGP MED, notice the output below from a Hub FGT. This is when both Branches are in SLA. Notice that:
+  - `diag sys sdwan health-check remote FROM_EDGE` has the fields **rmt_sla=in** and **rmt_prio=10** for the VPN tunnels over the **primary paths (VPN1_0, VPN1_1)**
+  - The **backup paths (VPN1-2_0, VPN1-2_1)** show **rmt_sla=in** and **rmt_prio=11**
+  - The latency, jitter, and packet loss are reported for each path
+  - BGP routes for the selected route show the BGP Metric is 10
+ 
+```
+scw-region1-hub1-fgt1(Primary) # diag sys sdwan health-check remote FROM_EDGE
+Remote Health Check: FROM_EDGE(2)
+  Passive remote statistics of VPN1-2(17):
+VPN1-2_0(10.0.0.3): timestamp=06-11 06:25:54.511, src=169.254.252.1, latency=0.161, jitter=0.006, pktloss=0.000%, mos=4.404, SLA id=1(pass), rmt_ver=2, rmt_sla=in, rmt_prio=11, last_sla_change=06-11 05:07:07.145
+VPN1-2_1(10.0.0.4): timestamp=06-11 06:25:54.671, src=169.254.252.2, latency=19.432, jitter=0.103, pktloss=0.000%, mos=4.394, SLA id=1(pass), rmt_ver=2, rmt_sla=in, rmt_prio=11, last_sla_change=06-11 05:07:14.652
+Remote Health Check: FROM_EDGE(1)
+  Passive remote statistics of VPN1(16):
+VPN1_0(169.254.252.1): timestamp=06-11 06:25:54.511, src=169.254.252.1, latency=0.242, jitter=0.027, pktloss=0.000%, mos=4.404, SLA id=1(pass), rmt_ver=2, rmt_sla=in, rmt_prio=10, last_sla_change=06-11 05:07:06.652
+VPN1_1(169.254.252.2): timestamp=06-11 06:25:54.671, src=169.254.252.2, latency=18.857, jitter=0.036, pktloss=0.000%, mos=4.395, SLA id=1(pass), rmt_ver=2, rmt_sla=in, rmt_prio=10, last_sla_change=06-11 05:07:14.650
+
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.1 routes 
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal,
+              S Stale
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+VRF 0 BGP table version is 4, local router ID is 169.254.253.251
+   Network          Next Hop            Metric     LocPrf Weight RouteTag Path
+*>i10.32.0.32/28    169.254.252.1   10            100      0        0 ? <-/1>
+
+Total number of prefixes 1
+
+
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.2 routes
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal,
+              S Stale
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+VRF 0 BGP table version is 4, local router ID is 169.254.253.251
+   Network          Next Hop            Metric     LocPrf Weight RouteTag Path
+*>i10.48.0.32/28    169.254.252.2   10            100      0        0 ? <-/1>
+
+Total number of prefixes 1
+```
+
+Now, compare the same fields to the same output when the primary path for one Branch (loopback IP of 169.254.252.1) is out of SLA. Notice that:
+  - **VPN1_0** shows **rmt_sla=out, rmt_prio=110** and **latency=202.522**
+  - `get router info bgp neighbors 169.254.252.1 routes` shows a metric change to **11 for the backup path (VPN1-2_0)**
+```
+scw-region1-hub1-fgt1(Primary) # diag sys sdwan health-check remote FROM_EDGE
+Remote Health Check: FROM_EDGE(2)
+  Passive remote statistics of VPN1-2(17):
+VPN1-2_0(10.0.0.3): timestamp=06-11 06:36:55.522, src=169.254.252.1, latency=0.198, jitter=0.026, pktloss=0.000%, mos=4.404, SLA id=1(pass), rmt_ver=2, rmt_sla=in, rmt_prio=11, last_sla_change=06-11 05:07:07.145
+VPN1-2_1(10.0.0.4): timestamp=06-11 06:36:55.420, src=169.254.252.2, latency=19.441, jitter=0.118, pktloss=0.000%, mos=4.394, SLA id=1(pass), rmt_ver=2, rmt_sla=in, rmt_prio=11, last_sla_change=06-11 05:07:14.652
+Remote Health Check: FROM_EDGE(1)
+  Passive remote statistics of VPN1(16):
+VPN1_0(169.254.252.1): timestamp=06-11 06:36:55.120, src=169.254.252.1, latency=202.522, jitter=0.071, pktloss=5.000%, mos=4.159, SLA id=1(remote), rmt_ver=2, rmt_sla=out, rmt_prio=110, last_sla_change=06-11 06:36:50.595
+VPN1_1(169.254.252.2): timestamp=06-11 06:36:55.419, src=169.254.252.2, latency=18.848, jitter=0.021, pktloss=0.000%, mos=4.395, SLA id=1(pass), rmt_ver=2, rmt_sla=in, rmt_prio=10, last_sla_change=06-11 05:07:14.650
+
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.1 routes
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal,
+              S Stale
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+VRF 0 BGP table version is 4, local router ID is 169.254.253.251
+   Network          Next Hop            Metric     LocPrf Weight RouteTag Path
+*>i10.32.0.32/28    169.254.252.1   11            100      0        0 ? <-/1>
+
+Total number of prefixes 1
+
+
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.2 routes
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal,
+              S Stale
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+VRF 0 BGP table version is 4, local router ID is 169.254.253.251
+   Network          Next Hop            Metric     LocPrf Weight RouteTag Path
+*>i10.48.0.32/28    169.254.252.2   10            100      0        0 ? <-/1>
+
+Total number of prefixes 1
+```
+
 {{% /notice %}}
 
 ### SD-WAN Rule Key Options

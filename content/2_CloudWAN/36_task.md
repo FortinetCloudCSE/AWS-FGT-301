@@ -10,7 +10,7 @@ weight: 10
 | **Validation** | Confirm routing updates in Cloud WAN Segments and HUB FGT routing tables.
 
 ## Introduction
-In this lab, we will focus on more advanced routing concepts within Cloud WAN in a multi-region deployment. In the Cloud WAN key concepts, you worked with the core building blocks that helped you build a WAN with broad brush strokes. Now we will focus on tailoring the routing for common use cases.
+In this section of the workshop we will focus on more advanced routing concepts within Cloud WAN in a multi-region deployment. In the Cloud WAN key concepts, you worked with the core building blocks that helped you build a WAN with broad brush strokes. Now we will focus on tailoring the routing for common use cases.
 
 Picking up from the last section we now have attachment policies, segment actions to share routes between segments, and specified a segment to be isolated. In this section, you will need to create the appropriate Cloud WAN Core Network Policy to blackhole certain traffic before reaching the target VPC and create routing policies that will automatically summarize routes before advertising out to the hub FGTs. Finally you will configure prefix lists and route maps on the hub FortiGates to control what routes are advertised to Cloud WAN.
 
@@ -70,7 +70,7 @@ When applying a routing policy that drops traffic, modify BGP attributes like lo
 
 {{% expand title = "**Detailed Steps...**" %}}
 
-- **2.1** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the SDWAN VPC CIDRs for both regions are shown **10.0.0.0/24 and 10.16.0.0/24**. The workload segments should not have direct access to the FGTs interfaces or anything deployed in the SDWAN VPCs. Currently not only does the production segment have these CIDRs propagated, but also the development and sharedservices segments.
+- **2.1** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the SDWAN VPC CIDRs for both regions are shown, **10.0.0.0/24 and 10.16.0.0/24**. The workload segments should not have direct access to the FGTs interfaces or anything deployed in the SDWAN VPCs. Currently not only does the production segment have these CIDRs propagated, but also the development and sharedservices segments.
 
 ![](image-t6-1.png)
 
@@ -87,13 +87,11 @@ Technically you could solve the core problem by relying on security groups, NACL
 ![](image-t6-2.png)
 	
 Segment From | Destination CIDR block | Blackhole
----|---|---|---
+---|---|---
 production | 10.0.0.0/24 | Checked
 production | 10.16.0.0/24 | Checked
 development | 10.0.0.0/24 | Checked
 development | 10.16.0.0/24 | Checked
-sharedservices | 10.0.0.0/24 | Checked
-sharedservices | 10.16.0.0/24 | Checked
 
 - **2.4:** Once completed, you should see the following routes in the routes section. 
 &nbsp;
@@ -112,7 +110,7 @@ sharedservices | 10.16.0.0/24 | Checked
 
 {{% expand title = "**Detailed Steps...**" %}}
 
-- **3.1:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **3.1:** **Login with READ/WRITE** to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
 
 - **3.2:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
 
@@ -138,7 +136,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 
 - **3.4:** In the **Network Manager Console** navigate to the **Policy versions page** for your Core Network and select the latest policy version and **click Edit**.
 
-- **3.5:** Near the top of the screen in the **Choose policy view mode** section **select JSON**. **Select all and delete the current JSON** in the Network Manager Console. Then **copy the new policy below**, which contains a routing policy, and **paste this back into the Network Manager Console**. If completed correctly, **you should see line 200 showing `  "routing-policies": [`**.
+- **3.5:** Near the top of the screen in the **Choose policy view mode** section **select JSON**. **Select all and delete the current JSON** in the Network Manager Console. Then **copy the new policy below**, which contains a routing policy, and **paste this back into the Network Manager Console**. If completed correctly, **you should see line 179 showing `  "routing-policies": [`**.
 
 ```
 {
@@ -188,7 +186,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
     },
     {
       "name": "sdwan",
-      "description": "ngfw-segment",
+      "description": "sdwan-segment",
       "require-attachment-acceptance": false
     }
   ],
@@ -206,6 +204,16 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
     },
     {
       "action": "create-route",
+      "segment": "development",
+      "destination-cidr-blocks": [
+        "10.0.0.0/24"
+      ],
+      "destinations": [
+        "blackhole"
+      ]
+    },
+    {
+      "action": "create-route",
       "segment": "production",
       "destination-cidr-blocks": [
         "10.16.0.0/24"
@@ -217,36 +225,6 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
     {
       "action": "create-route",
       "segment": "development",
-      "destination-cidr-blocks": [
-        "10.0.0.0/24"
-      ],
-      "destinations": [
-        "blackhole"
-      ]
-    },
-    {
-      "action": "create-route",
-      "segment": "development",
-      "destination-cidr-blocks": [
-        "10.16.0.0/24"
-      ],
-      "destinations": [
-        "blackhole"
-      ]
-    },
-    {
-      "action": "create-route",
-      "segment": "sharedservices",
-      "destination-cidr-blocks": [
-        "10.0.0.0/24"
-      ],
-      "destinations": [
-        "blackhole"
-      ]
-    },
-    {
-      "action": "create-route",
-      "segment": "sharedservices",
       "destination-cidr-blocks": [
         "10.16.0.0/24"
       ],
@@ -260,8 +238,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
       "segment": "sdwan",
       "share-with": [
         "production",
-        "development",
-        "sharedservices"
+        "development"
       ]
     },
     {
@@ -329,7 +306,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
       "conditions": [
         {
           "type": "tag-value",
-          "operator": "equals",
+          "operator": "contains",
           "key": "segment",
           "value": "sharedservices"
         }
@@ -388,7 +365,11 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 
 ![](image-t6-7.png)
 
-- **3.6:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing. **Select the latest Policy version** and **click Edit**. Then navigate to the **Routing policies tab** and see the new policy created. Notice that the routing policy is directional and it is created as outbound. **Select the first rule and click Edit**. In the **Edit routing policy rule page** select the **Action** and **Conditions** dropdown boxes to see all options available. Then **click Cancel** to back out.
+- **3.6:** Next **click Create policy**. You should be back on the **Policy versions page** with a new policy version showing.
+  - **Select the latest Policy version** and **click Edit**. Then navigate to the **Routing policies tab** and see the new policy created.
+  - Notice that the **routing policy is directional** and it is created as **outbound**.
+  - **Select the first rule and click Edit**.
+  - In the **Edit routing policy rule page** select the **Action** and **Conditions** dropdown boxes to see all options available. Then **click Cancel** to back out.
 
 ![](image-t6-8.png)
 
@@ -396,7 +377,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 
 ![](image-t6-10.png)
 	
-- **3.7:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshots below to complete the configuration. **Pay attention to the Condition - Routing policy label** since we will need to use the same value later when editing the Connect attachments.
+- **3.7:** Navigate to the **Attachment policies tab** find the **Attachment routing policies section** and then **Click Create**. On the **Create attachment routing policy page** use the screenshots below to complete the configuration. **Pay attention to the Condition - Routing policy label**, use `SummarizeVpcsRegion1and2`, since we will need to use the same value later when editing the Connect attachments.
 
 ![](image-t6-11.png)
 
@@ -410,17 +391,21 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 
 ![](image-t6-14.png)
 
-- **3.10:** At first, you will see that the routing policy label is applied but there is no attachment routing policy association yet. After a few minutes you should refresh your browser and see that there is now an attachment routing policy association.
+- **3.10:** **At first**, you will see that the routing policy label is applied but there is **no attachment routing policy association** yet. **After a few minutes you should refresh your browser** and see that there is now an attachment routing policy association.
 
 ![](image-t6-15.png)
 	
 ![](image-t6-16.png)
 
-- **3.11:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **3.11:** **Login with READ/WRITE** to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
 
 - **3.12:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
 
-- **3.13:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.0.0.0/12, 10.16.0.0/12**) are the summary routes per region for region 1 and region 2 for all segments. If you do not see the summary routes yet, give it a few minutes. As more VPCs are spun up and attached to the prod, dev, and sharedservices segments, if their VPC routes match the routing policy that was added, no new CIDRs will be seen on the hub and branch FGTs.
+- **3.13:** Run the command **`get router  info routing-table bgp`** and notice that these CIDRs (**10.0.0.0/12, 10.16.0.0/12**) are the summary routes per region for region 1 and region 2 for all segments. If you do not see the summary routes yet, give it a few minutes.
+
+{{% notice info %}}
+As more VPCs are spun up and attached to the prod, and dev segments, if their VPC routes match the routing policy that was added, no new CIDRs will be seen on the Hub and Branch FGTs.
+{{% /notice %}}
 
 {{% /expand %}}
 
@@ -430,7 +415,7 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 
 - **4.1:** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the Branch 1 & 2 CIDRs for both regions are shown **10.32.0.32/28 and 10.48.0.32/28**. In a production environment you will likely have hundreds or thousands of branch deployments across premise around the world. So we want to summarize these into a single summary CIDR for both branch 1 & 2, normally in production you would likely want to have a summary route per geo or SDWAN region.
 
-- **4.2:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **4.2:** **Login with READ/WRITE** to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
 
 - **4.3:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
 
@@ -439,11 +424,13 @@ Also, since the number of routes accepted from a Connect peer into Cloud WAN is 
 - **4.5:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
 
 {{% notice info %}}
-You will see a total of 4x 100.64.x.x BGP peers on each Hub and only 2 will be up at a given moment. This is because each Hub FGT is an FGCP pair where the primary and secondary FGTs have their own 2x BGP peers to Cloud WAN. So only the BGP peers meant for the current primary unit will be up.
+Notice that 2 out of the 4 BGP peers with the address 100.64.x.x are showing down while the others are up. As these FortiGates are working in an Active-Passive cluster, the passive FortiGate will not have an active BGP session to Cloud WAN as the data plane interfaces will be down.
+
+Since these FortiGates are clustered, we are syncing all 4 Connect Peer addresses with both primary and backup to keep config management simple with FortiManager. This is because we are using FGCP dual AZ HA where each FortiGate is in a different subnet and thus needs it’s own Connect Peer definition.
 {{% /notice %}}
 
 ```
-scw-region1-hub1-fgt1 # get router info bgp summary
+scw-region1-hub1-fgt1(Primary) # get router info bgp summary
 
 VRF 0 BGP router identifier 169.254.253.252, local AS number 65000
 BGP table version is 4
@@ -459,20 +446,21 @@ Neighbor      V         AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/Pfx
 169.254.252.1 4      65000     303     306        4    0    0 00:09:02        1
 169.254.252.2 4      65000     301     310        4    0    0 00:09:03        1
 
-scw-region1-hub1-fgt1 # get router info bgp neighbors 100.64.1.15 advertised-routes 
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 100.64.1.15 advertised-routes 
 VRF 0 BGP table version is 4, local router ID is 169.254.253.252
 Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
 Origin codes: i - IGP, e - EGP, ? - incomplete
 
    Network          Next Hop            Metric     LocPrf Weight RouteTag Path
 *> 0.0.0.0/0        10.0.0.42                     100  32768        0 65000 i <-/->
+*> 10.0.0.0/24      10.0.0.42                     100  32768        0 65000 i <-/->
 *> 10.32.0.32/28    10.0.0.42                     100      0        0 ? <-/->
 *> 10.48.0.32/28    10.0.0.42                     100      0        0 ? <-/->
 
-Total number of prefixes 3
+Total number of prefixes 4
 
 
-scw-region1-hub1-fgt1 # get router info bgp neighbors 100.64.1.36 advertised-routes
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 100.64.1.36 advertised-routes
 VRF 0 BGP table version is 4, local router ID is 169.254.253.252
 Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
 Origin codes: i - IGP, e - EGP, ? - incomplete
@@ -480,35 +468,38 @@ Origin codes: i - IGP, e - EGP, ? - incomplete
    Network          Next Hop            Metric     LocPrf Weight RouteTag Path
 *> 0.0.0.0/0        10.0.0.42                     100  32768        0 65000 i <-/->
 *> 10.0.0.0/12      10.0.0.42                              0        0 64512 ? <-/->
+*> 10.0.0.0/24      10.0.0.42                     100  32768        0 65000 i <-/->
 *> 10.16.0.0/12     10.0.0.42                              0        0 64512 ? <-/->
 *> 10.32.0.32/28    10.0.0.42                     100      0        0 ? <-/->
 *> 10.48.0.32/28    10.0.0.42                     100      0        0 ? <-/->
 
-Total number of prefixes 5
+Total number of prefixes 6
 
 
-scw-region1-hub1-fgt1 # get router info bgp neighbors 169.254.252.1 advertised-routes
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.1 advertised-routes
 VRF 0 BGP table version is 4, local router ID is 169.254.253.252
 Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
 Origin codes: i - IGP, e - EGP, ? - incomplete
 
    Network          Next Hop            Metric     LocPrf Weight RouteTag Path
 *>i10.0.0.0/12      169.254.253.252 100           100      0        0 64512 ? <-/->
+*>i10.0.0.0/24      169.254.253.251               100  32768        0 i <-/->
 *>i10.16.0.0/12     169.254.253.252 100           100      0        0 64512 ? <-/->
 
-Total number of prefixes 2
+Total number of prefixes 3
 
 
-scw-region1-hub1-fgt1 # get router info bgp neighbors 169.254.252.2 advertised-routes
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.2 advertised-routes
 VRF 0 BGP table version is 4, local router ID is 169.254.253.252
 Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
 Origin codes: i - IGP, e - EGP, ? - incomplete
 
    Network          Next Hop            Metric     LocPrf Weight RouteTag Path
 *>i10.0.0.0/12      169.254.253.252 100           100      0        0 64512 ? <-/->
+*>i10.0.0.0/24      169.254.253.251               100  32768        0 i <-/->
 *>i10.16.0.0/12     169.254.253.252 100           100      0        0 64512 ? <-/->
 
-Total number of prefixes 2
+Total number of prefixes 3
 ```
 - **4.6:** Notice that for the Connect peers, we are advertising each branch FGT local CIDR (**10.32.0.32/28, 10.48.0.32/28**). We want to summarize this to **10.32.0.0/11** as this will cover all branch FGTs for this SDWAN deployment.  To do this we are going to use prefix lists, route maps, a static route, a bgp network statement, and route-map settings for both Connect Peers and branch FGT peers. The goal is to only advertise the summary route to AWS but not to the branch FGTs so we do not affect ADVPN shortcuts between branches.
 
@@ -598,10 +589,10 @@ exec router clear bgp all
 
 - **4.9:** Run the command **`get router info bgp summary`** again and to get the list of IPs for the AWS Connect peers and branch FGT peers.
 
-- **4.10:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. **You should see that to AWS we are advertising the summary route, not each branch CIDR**. Also for the **branch FGTs, nothing has changed, as desired.  Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
+- **4.10:** For each peer, run the command **`get router info bgp neighbors x.x.x.x advertised-routes`** and see what routes are being advertised in each direction. **You should see that to AWS we are advertising the summary route, not each branch CIDR**. Also for the **branch FGTs, nothing has changed**, as desired.  Here is an example of what hub1 FGT should see, **note the Connect peer addresses will be unique for each deployment**:
 
 ```
-scw-region1-hub1-fgt1 # get router info bgp summary 
+scw-region1-hub1-fgt1(Primary) # get router info bgp summary 
 
 VRF 0 BGP router identifier 169.254.253.252, local AS number 65000
 BGP table version is 3
@@ -620,7 +611,7 @@ Neighbor      V         AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/Pfx
 Total number of neighbors 6
 
 
-scw-region1-hub1-fgt1 # get router info bgp neighbors 100.64.1.15 advertised-routes 
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 100.64.1.15 advertised-routes 
 VRF 0 BGP table version is 3, local router ID is 169.254.253.252
 Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
 Origin codes: i - IGP, e - EGP, ? - incomplete
@@ -632,7 +623,7 @@ Origin codes: i - IGP, e - EGP, ? - incomplete
 Total number of prefixes 2
 
 
-scw-region1-hub1-fgt1 # get router info bgp neighbors 100.64.1.36 advertised-routes
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 100.64.1.36 advertised-routes
 VRF 0 BGP table version is 3, local router ID is 169.254.253.252
 Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
 Origin codes: i - IGP, e - EGP, ? - incomplete
@@ -644,16 +635,29 @@ Origin codes: i - IGP, e - EGP, ? - incomplete
 Total number of prefixes 2
 
 
-scw-region1-hub1-fgt1 # get router info bgp neighbors 169.254.252.1 advertised-routes
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.1 advertised-routes
 VRF 0 BGP table version is 3, local router ID is 169.254.253.252
 Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
 Origin codes: i - IGP, e - EGP, ? - incomplete
 
    Network          Next Hop            Metric     LocPrf Weight RouteTag Path
 *>i10.0.0.0/12      169.254.253.252 100           100      0        0 64512 ? <-/->
+*>i10.0.0.0/24      169.254.253.251               100  32768        0 i <-/->
 *>i10.16.0.0/12     169.254.253.252 100           100      0        0 64512 ? <-/->
 
-Total number of prefixes 2
+Total number of prefixes 3
+
+scw-region1-hub1-fgt1(Primary) # get router info bgp neighbors 169.254.252.2 advertised-routes
+VRF 0 BGP table version is 3, local router ID is 169.254.253.252
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+   Network          Next Hop            Metric     LocPrf Weight RouteTag Path
+*>i10.0.0.0/12      169.254.253.252 100           100      0        0 64512 ? <-/->
+*>i10.0.0.0/24      169.254.253.251               100  32768        0 i <-/->
+*>i10.16.0.0/12     169.254.253.252 100           100      0        0 64512 ? <-/->
+
+Total number of prefixes 3
 ```
 - **4.11:** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. Notice that the Branch 1 & 2 CIDRs are not shown and now you see the summary route **10.32.0.0/11** instead.  **The route tab can be very slow to update** actual routes, so to see the changes **try switching the edge location or the segment** to see that each hub is advertising the same summary route and the local hub FGT's route is being preferred over the other region.
 
