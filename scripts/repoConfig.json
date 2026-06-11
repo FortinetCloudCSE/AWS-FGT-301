@@ -3,6 +3,8 @@
 	"author": "Hiruy Aberra, Regis Martin",
 	"workshopTitle": "AWS 301 SDWAN with AWS Cloud WAN",
 	"themeVariant": "CloudCSEMovie",
+	"videoHeaderSrc": "/videos/CloudsAnimated.mp4",
+	"videoHeaderInterval": "60",
 	"logoBannerText": "AWS 301",
 	"logoBannerSubText": "SDWAN with AWS Cloud WAN",
 	"errorLevel": "warning",
