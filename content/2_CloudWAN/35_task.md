@@ -7,10 +7,10 @@ weight: 5
 |:----:|:--|
 | **Goal**                   | Utilize Cloud WAN components and Core Network Policy to provide a secured & orchestrated network.
 | **Task**                   | Update Core Networking Policy with logic to automate connecting resources to segments and propagating routes to allow secured traffic flow.
-| **Validation** | Confirm east/west connectivity from EC2 scw-region1-spoke1-linux-instance via Ping, HTTP.
+| **Validation** | Confirm east/west connectivity from EC2 scw-region1-prod-linux-instance via Ping, HTTP.
 
 ## Introduction
-In this lab, we will focus on Cloud WAN key components in a multi-region deployment. [**AWS Cloud WAN (CWAN)**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/what-is-cloudwan.html) is an intent-driven managed wide area network (WAN), described by a policy you define that unifies your data center, branch, and AWS networks. While you can create your own global network by interconnecting multiple Transit Gateways across Regions, Cloud WAN provides built-in automation, segmentation, and configuration management features designed specifically for building and operating global networks, based on your core network policy. Cloud WAN has added features such as automated VPC attachments, integrated performance monitoring, and centralized configuration.
+In this section of the workshop we will focus on Cloud WAN key components in a multi-region deployment. [**AWS Cloud WAN (CWAN)**](https://docs.aws.amazon.com/network-manager/latest/cloudwan/what-is-cloudwan.html) is an intent-driven managed wide area network (WAN), described by a policy you define that unifies your data center, branch, and AWS networks. While you can create your own global network by interconnecting multiple Transit Gateways across Regions, Cloud WAN provides built-in automation, segmentation, and configuration management features designed specifically for building and operating global networks, based on your core network policy. Cloud WAN has added features such as automated VPC attachments, integrated performance monitoring, and centralized configuration.
 &nbsp;
 
 ![](image-cwan-overview.png)
@@ -40,7 +40,7 @@ Below is a table of the key components in Cloud WAN. Since Cloud WAN is a manage
 | Core Network          | Global                 | Global WAN construct                     | The backbone you're building                |
 | Core Network Policy   | Global                 | Central config & control plane (JSON)    | Defines routing and segmentation globally   |
 | Segment               | Global                 | Logical routing domain (like VRF)        | Enables isolation between environments      |
-| Network Function Group| Global                 | Logical service insertion group          | Forces traffic through network appliances (FW, IDS) in GWLB designs |
+| Network Function Group (not shown)| Global                 | Logical service insertion group (similar to a segment)         | Forces traffic through network appliances (FW, IDS) in GWLB designs |
 | Core Network Edge (CNE)    | Regional               | Regional hub (ie "edge location")        | Entry/exit point into AWS backbone          |
 | Attachment            | Regional               | Connection into Cloud WAN Segment through CNE       | How resources join the network              |
 | Connect               | Regional               | Integration mechanism (uses GRE Overlay) | Enables SD-WAN connectivity to AWS          |
@@ -96,16 +96,16 @@ Below is a table Cloud WAN attachment types and what they are commonly used for:
 
 ![](image-t5-2.png)
 
-- **2.3:** Scroll down the page and notice the attachments widget shows a total of **4 attachments (3 VPC & 1 Connect) per region**.
+- **2.3:** Scroll down the page and notice the attachments widget shows a total of **5 attachments (4 VPC & 1 Connect) per region**.
 
 ![](image-t5-2b.png)
 
-- **2.4:** Navigate to the **attachments page** under your core network. Select the **scw-region1-sdwan-connect-attachment** and view the **Details tab** in the pane below, notice the **segment and attachment policy rule number are empty**.
+- **2.4:** Navigate to the **attachments page** under your core network. Select the **scw-region1-sdwan-connect-attachment** and view the **Details tab** in the pane below, notice the **segment and attachment policy rule number are empty**. This is currently the **status for all attachments**.
 
 ![](image-t5-3.png)
 
 {{% notice info %}}
-When creating an attachment for Cloud WAN, you specify which Core Network (which is tied to a Global Network) and also which Edge Location (ie Region) this is in. However, note that you don't specify which segment to attach it to, or what segments to propagate the attachment to. This is meant to be done by the Core Network Policy, specifically the attachment policy rules defined.
+When creating an attachment for Cloud WAN, you specify which Core Network (which is tied to a Global Network) and also which Edge Location (ie Region) this is in. However, note that you don't specify which segment to attach it to, or what segments to propagate the attachment to. This is meant to be done by the Core Network Policy, specifically the attachment policy rules and sharing actions defined.
 
 Below is what you see when you create a VPC attachment, notice the bread crumbs at the top are showing you are already picking a Core Network and the options below do not include anything about segment association or propagation.
 
@@ -132,13 +132,39 @@ scw-region2-spoke2-vpc-attachment | segment = production
 scw-region1-spoke3-vpc-attachment | segment = development
 scw-region2-spoke4-vpc-attachment | segment = development
 
+- **2.7:** Navigate to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select a segment and edge location and click Search routes**. You should see routes matching the table below.
+  - Notice, that all segment routes are empty at this point
+
+![](image-t5-4c.png)
+
+Segment | CIDR
+---|---
+sdwan | No network routes
+production | No network routes
+development | No network routes
+sharedservices | No network routes
+
+- **2.8:** At this point the AWS architecture looks like the diagram below. The workload and SDWAN VPCs are not attached to any segments, so routing for the segments are empty and no BGP routes are shared between the Hub FGTs and Cloud WAN.
+
+![](image-cwan-multiregion-step1.png)
+
 {{% /expand %}}
 
 ###### 3) Review FortiGate1's BGP config and current routes advertised/received
 
 {{% expand title = "**Detailed Steps...**" %}}
 
-- **3.1:** Navigate to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **3.1:** **Login with READ/WRITE** to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics). On the first login you will need to walk through initial login choices, **follow the screenshots below** to get through this.
+
+![image](image-t6-16b.png?width=450px)
+
+![image](image-t6-16c.png?width=600px)
+
+![image](image-t6-16d.png?width=450px)
+
+![image](image-t6-16e.png?width=600px)
+
+![image](image-t6-16f.png?width=600px)
 
 - **3.2:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
 
@@ -146,17 +172,17 @@ scw-region2-spoke4-vpc-attachment | segment = development
 
 - **3.4:** Run the command `show router bgp` and notice the **ASN and BGP peer IPs match** the information in the **Connect peers tab** of the corresponding Connect attachment.
 
+- **3.5:** Run the command `get router info bgp summary` and notice the **State/PfxRcd values are zero for all peers with 100.64.x.x addresses that are currently up**.
+
 {{% notice info %}}
 Notice that 2 out of the 4 BGP peers with the address 100.64.x.x are showing down while the others are up.  As these FortiGates are working in an Active-Passive cluster, the passive FortiGate will not have an active BGP session to Cloud WAN as the data plane interfaces will be down.
 
 Since these FortiGates are clustered, we are syncing all 4 Connect Peer addresses with both primary and backup to keep config management simple with FortiManager. This is because we are using FGCP dual AZ HA where each FortiGate is in a different subnet and thus needs it's own Connect Peer definition.
 {{% /notice %}}
 
-- **3.5:** Run the command `get router info bgp summary` and notice the **State/PfxRcd values are zero for all peers with 100.64.x.x addresses that are currently up**.
+- **3.6:** Run the command `get router info bgp neighbors <peer-ip> advertised-routes` for all peers with 100.64.x.x addresses that are currently up and notice **a default route, branch routes, and a HUB route are advertised**.
 
-- **3.6:** Run the command `get router info bgp neighbors <peer-ip> advertised-routes` for each BGP neighbor and notice **a default route, branch routes, and a HUB route are advertised**.
-
-- **3.7:** Run the command `get router info bgp neighbors <peer-ip> routes` for each BGP neighbor and notice **no routes are received from Cloud WAN**.
+- **3.7:** Run the command `get router info bgp neighbors <peer-ip> routes` for all peers with 100.64.x.x addresses that are currently up **no routes are received from Cloud WAN**.
 {{% /expand %}}
 
 ###### 4) Update & Apply Core Network Policy
@@ -173,9 +199,11 @@ Since these FortiGates are clustered, we are syncing all 4 Connect Peer addresse
 
 ![](image-t5-6.png)
 
+![](image-t5-6b.png)
+
 Segment from | Segment to | Allow segment list
 ---|---|---
-sdwan | allow selected | production, development, sharedservices
+sdwan | allow selected | production, development
 sharedservices | allow selected | production, development
 
 {{% notice info %}}
@@ -214,7 +242,11 @@ rule number | Attach to Segment | Conditions Values (Tag Key, Tag Value)
 
 {{% expand title = "**Detailed Steps...**" %}}
 
-- **5.1:** Navigate to the **attachments page** under your Core Network. Select the **scw-region1-sdwan-connect-attachment** and view the **Details tab**. Notice the **segment and attachment policy rule number are now populated**. The table below should match what your environment looks like after applying the correct Core Network Policy. Select the other attachments to verify the results.
+- **5.1:** With the updates to the Core Network Policy, the AWS architecture looks like the diagram below. The workload and SDWAN VPCs are attached to segments and routes are propagated within and betweensegments, including BGP routes between Hub FGTs and Cloud WAN for certain segments.
+
+![](image-cwan-multiregion-step2.png)
+
+- **5.2:** Navigate to the **attachments page** under your Core Network. Select the **scw-region1-sdwan-connect-attachment** and view the **Details tab**. Notice the **segment and attachment policy rule number are now populated**. The table below should match what your environment looks like after applying the correct Core Network Policy. Select the other attachments to verify the results.
 
 ![](image-t5-12.png)
 
@@ -229,7 +261,7 @@ scw-region2-spoke2-vpc-attachment | production | 200
 scw-region1-spoke3-vpc-attachment | development | 300
 scw-region2-spoke4-vpc-attachment | development | 300
 
-- **5.2:** Navigate to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select a segment and edge location and click Search routes**. You should eventually see routes matching the table below.
+- **5.3:** Navigate to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select a segment and edge location and click Search routes**. You should eventually see routes matching the table below.
   - Notice, the **default route, and branch routes are from the local region's Hub FGTs through the connect attachment**.
   - Also, the **Destinations** column shows **attachment-...** if the CIDR is from an attachment in the **same region** or it shows the **segment name | region** for a **remote region**
 
@@ -237,42 +269,68 @@ scw-region2-spoke4-vpc-attachment | development | 300
 
 Segment | CIDR (region & destination)
 ---|---
-sdwan | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-spoke1), 10.2.0.0/24 (r1-spoke2), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-spoke3), 10.18.0.0/24 (r2-spoke4), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
-production | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-spoke1), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-spoke3), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
-development | 10.0.0.0/24 (r1-sdwan), 10.2.0.0/24 (r1-spoke2), 10.16.0.0/24 (r2-sdwan), 10.18.0.0/24 (r2-spoke4), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
-sharedservices | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-spoke1), 10.2.0.0/24 (r1-spoke2), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-spoke3), 10.18.0.0/24 (r2-spoke4), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+sdwan | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-prod), 10.2.0.0/24 (r1-dev), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-prod), 10.18.0.0/24 (r2-dev), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+production | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-prod), 10.3.0.0/24 (r1-shareds), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-prod), 10.19.0.0/24 (r2-shareds), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+development | 10.0.0.0/24 (r1-sdwan), 10.2.0.0/24 (r1-dev), 10.3.0.0/24 (r1-shareds), 10.16.0.0/24 (r2-sdwan), 10.18.0.0/24 (r2-dev), 10.19.0.0/24 (r2-shareds), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+sharedservices | 10.1.0.0/24 (r1-prod), 10.2.0.0/24 (r1-dev), 10.3.0.0/24 (r1-shareds), 10.17.0.0/24 (r2-prod), 10.18.0.0/24 (r2-dev), 10.19.0.0/24 (r2-shareds)
 	
-- **5.3:** Login to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
+- **5.4:** **Login with READ/WRITE** to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics).
 
-- **5.4:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
+- **5.5:** Upon login in the **upper right-hand corner** click on the **>_** icon to open a CLI session.
 
-- **5.5:** Run the command `get router info bgp summary` and notice **State/PfxRcd is now showing six routes received** for all peers with 100.64.x.x addresses that are currently up.
+- **5.6:** Run the command `get router info bgp summary` and notice **State/PfxRcd is now showing six routes received** for all peers with 100.64.x.x addresses that are currently up.
 
-- **5.6:** Run the command `get router info bgp neighbors <peer-ip> routes` for each **100.64.x.x** BGP neighbor that is up and notice **six routes are received from Cloud WAN**.
+- **5.7:** Run the command `get router info bgp neighbors <peer-ip> routes` for each **100.64.x.x** BGP neighbor that is up and notice **six routes are received from Cloud WAN**.
   - Notice that the **Next Hop address is the IP of** the Core Network attachment **scw-region1-sdwan-vpc-attachment** in the same subnet as port2 of FortiGate1. 
   - Also, notice the **Path column which shows the AS Path received**. You can see which routes are originating from **region1 CNEs (64512) vs region2 (64512 64513)**.
 
 {{% notice info %}}
-TODO... note about how to lookup CNE address, ie CWAN VPC attachment IP in SDWAN VPC, compare to Next Hop address in FGT output.
+To look up the IP of the Core Network attachment that is the Next Hop address in the BGP routes received by the Hub FGTs, you can run a search in the AWS EC2 Console in each region.
 
-ALSO... need a note about what happens if more VPCs with properly tagged attachments are added to this core network? Current CNP would automatically attach/propagate as needed.
+- **1:** In the **AWS EC2 Console** navigate to the **Network Interfaces**.  **Make sure you are in the correct region for either Hub FGT**.
+
+- **2:** If your Hub FGT shows a Next Hop address of `10.0.0.36`, you can search for `Primary private IPv4 address = 10.0.0.36`. **Modify this to match what your Next Hop address is for each Primary Hub FGT**.
+
+- **3:** This will return a match like this. Notice that:
+  - The **Description** shows the **attachment-id** and this will be the **VPC attachment in the SDWAN VPC** for the current region
+  - The **Private IPv4 address** is a private IP in the **same availability zone & subnet as the Primary Hub FGT's port2**
+
+![](image-t5-13c.png)
+
+Alternatively, in your own environment where CLI access is available to you, you can run the AWS CLI commands below to quickly gather this information for both Hub FGTs. Granted, you would need to update the regions and VPC names being used in the CLI commands to match your environment. Then you should see results like the following.
+
+```
+aws ec2 describe-network-interfaces --region us-west-1 --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs --region us-west-1 --filters Name=tag:Name,Values=scw-region1-sdwan-vpc --query 'Vpcs[0].VpcId' --output text)" --query "NetworkInterfaces[?contains(Description, 'Network Interface for Core Network Attachment')].[NetworkInterfaceId,Description,PrivateIpAddress,AvailabilityZone,VpcId,SubnetId]" --output table
+
+aws ec2 describe-network-interfaces --region us-west-2 --filters "Name=vpc-id,Values=$(aws ec2 describe-vpcs --region us-west-2 --filters Name=tag:Name,Values=scw-region2-sdwan-vpc --query 'Vpcs[0].VpcId' --output text)" --query "NetworkInterfaces[?contains(Description, 'Network Interface for Core Network Attachment')].[NetworkInterfaceId,Description,PrivateIpAddress,AvailabilityZone,VpcId,SubnetId]" --output table
+```
+
+![](image-t5-13d.png)
 {{% /notice %}}
 
-- **5.7:** Run the command `get router info routing-table all` and notice there is **a static route for 100.64.1.0/24 (CNE inside CIDR block) & 10.0.0.0/24 (SDWAN VPC) out port2**. This allows the FGTs to BGP directly with the Core Network Edge (CNE).
+{{% notice info %}}
+What will happen if more VPCs with properly tagged VPC attachments are added to this Core Network? The current Core Network Policy would automatically attach and propagate these attachments as defined.
 
-- **5.8:** Run the command `diag sniff pack any 'host 10.1.0.14 and (tcp port 80 or icmp)' 4 0 l` to start a packet capture and leave it running. We will come back to the captured results in a few steps.
+What will happen if you change the tag on a VPC attachment in the Core Network? The current Core Network Policy would automatically attach and propagate these attachments as defined. If there is no matching attachment policy, the VPC attachment would now not be attached to any segment and previous propagations would be removed.
 
-- **5.9:** Navigate to the **EC2 Console** and connect to **scw-region1-spoke1-linux-instance** using the **[serial console directions](../0_labprep/05_awsec2serialconsole)** 
+In either scenario, while the VPC attachment and Core Network are being updated, you will see the attachment state as **Pending network update**.
+{{% /notice %}}
+
+- **5.8:** Run the command `get router info routing-table all` and notice there is **a static route for 100.64.1.0/24 (CNE inside CIDR block) & 10.0.0.0/24 (SDWAN VPC) out port2**. This allows the FGTs to BGP directly with the Core Network Edge (CNE).
+
+- **5.9:** Run the command `diag sniff pack any 'host 10.1.0.14 and (tcp port 80 or icmp)' 4 0 l` to start a packet capture and leave it running. We will come back to the captured results in a few steps.
+
+- **5.10:** Navigate to the **EC2 Console** and connect to `scw-region1-prod-linux-instance` using the **[serial console directions](../0_labprep/05_awsec2serialconsole)** 
     - Username: instance-id (serial console directions link above shows how to get this for your environment)
     - Password: (relevant credentials in your environment outputs)
 
-- **5.10:** Run the following commands to test connectivity and make sure the results match expectations 
+- **5.11:** Run the following commands to test connectivity and make sure the results match expectations 
 &nbsp;
 
-SRC / DST | scw-region1-spoke2-linux-instance (dev) | scw-region2-spoke3-linux-instance (prod)
----|---|---
-**scw-region1-spoke1-linux-instance (prod)** | `curl 10.2.0.14` {{<fail>}} | `curl 10.17.0.14` {{<success>}}
-**scw-region1-spoke1-linux-instance (prod)** | `ping 10.2.0.14` {{<fail>}} | `ping 10.17.0.14` {{<success>}}
+SRC / DST | scw-region1-dev-linux-instance (dev segment) | scw-region2-prod-linux-instance (prod segment) | scw-region1-sharedservice-linux-instance (shared segment)
+---|---|---|---
+**scw-region1-prod-linux-instance (prod segment)** | `curl 10.2.0.14` {{<fail>}} | `curl 10.17.0.14` {{<success>}} | `curl 10.3.0.14` {{<success>}}
+**scw-region1-prod-linux-instance (prod segment)** | `ping 10.2.0.14` {{<fail>}} | `ping 10.17.0.14` {{<success>}} | `ping 10.3.0.14` {{<success>}}
 
 {{% /expand %}}
 
@@ -283,7 +341,7 @@ SRC / DST | scw-region1-spoke2-linux-instance (dev) | scw-region2-spoke3-linux-i
 - **6.1** Going back to the running packet capture from the **previous step 5.8** and run `ctrl + c` to stop the capture. You should see results like this.
 
 ```
-scw-region1-hub1-fgt1 # diag sniff pack any 'host 10.1.0.14 and (tcp port 80 or icmp)' 4 0 l
+scw-region1-hub1-fgt1(Primary) # diag sniff pack any 'host 10.1.0.14 and (tcp port 80 or icmp)' 4 0 l
 Using Original Sniffing Mode
 interfaces=[any]
 filters=[host 10.1.0.14 and (tcp port 80 or icmp)]
@@ -294,13 +352,14 @@ filters=[host 10.1.0.14 and (tcp port 80 or icmp)]
 2026-06-04 07:00:00.371751 port2 in 10.1.0.14 -> 10.2.0.14: icmp: echo request
 ```
 
-- **6.2** Notice that scw-region1-spoke1-linux-instance (10.1.0.14) can access scw-region2-spoke3-linux-instance (10.17.0.14) over HTTP and PING but could not access scw-region1-spoke2-linux-instance (10.2.0.14).
-  - This is because scw-region1-spoke1-linux-instance and scw-region2-spoke3-linux-instance are in VPCs attached to the production segment which is configured as a shared routing domain by default. This allows anything attached to the same segment to communicate bidirectionally.
+- **6.2** Notice that scw-region1-prod-linux-instance (10.1.0.14) can access scw-region2-prod-linux-instance (10.17.0.14) over HTTP and PING but could not access scw-region1-dev-linux-instance (10.2.0.14). Also, scw-region1-prod-linux-instance (10.1.0.14) can access scw-region1-sharedservice-linux-instance (10.3.0.14).
+  - This is because scw-region1-prod-linux-instance and scw-region2-prod-linux-instance are in VPCs attached to the production segment which is configured as a shared routing domain by default. This allows anything attached to the same segment to communicate bidirectionally.
 
-  - This means anything in scw-region1-spoke1-vpc can reach scw-region2-spoke3-vpc without being sent through the FGTs in scw-region1-sdwan-vpc which is in the sdwan segment.
+  - This means anything in scw-region1-prod-vpc can reach scw-region2-prod-vpc without being sent through the Hub FGTs in either scw-region1-sdwan-vpc or scw-region2-sdwan-vpc which are in the sdwan segment.
 
-- **6.3** scw-region1-spoke2-vpc is in the development segment so when scw-region1-spoke1-vpc reaches out to this destination, the routes for the production segment first forwards traffic to the FGTs in the inspection VPC (via 0.0.0.0/0 to Connect attachments). This allowed the FGTs to enforce FW policy, implicit in this case, that blocked access from scw-region1-spoke1-vpc to scw-region1-spoke2-vpc since there is no FW policy explicitly allowing that right now.
+  - Also, scw-region1-prod-linux-instance (10.1.0.14) can access scw-region2-sharedservice-linux-instance (10.3.0.14) because of the segment actions in the Core Network Policy allow sharing routes between the production and sharedservices segments. So anything in scw-region1-prod-vpc or scw-region2-prod-vpc can reach scw-region1-sharedservice-vpc or scw-region2-sharedservice-vpc without being sent through the Hub FGTs also.
 
+- **6.3** The scw-region1-dev-linux-instance is in the development segment so when scw-region1-prod-linux-instance reaches out to this destination, the routes for the production segment first forwards traffic to the Hub FGTs in the scw-region1-sdwan-vpc (via 0.0.0.0/0 to Connect attachments). This allowed the Hub FGTs to enforce FW policy, implicit in this case, that blocked access from scw-region1-prod-linux-instance to scw-region1-dev-linux-instance since there is no FW policy explicitly allowing that right now.
 
 - **6.4** Segments can be configured to be isolated so that resources attached to the same segment can't communicate directly. Through the Core Network Policy you can still allow access to specific routes or other segments explicitly.
 
@@ -316,18 +375,17 @@ filters=[host 10.1.0.14 and (tcp port 80 or icmp)]
 
 - **6.9** On the **next page click Apply change set**. You will be returned to the Policy version page and see the **new policy version is executing**. In a few moments this will show as **Execution succeeded**.
 
-- **6.10:** Navigate back to the **EC2 Console** and connect to **scw-region1-spoke1-linux-instance** using the **[serial console directions](../0_labprep/05_awsec2serialconsole))** 
+- **6.10:** Navigate back to the **EC2 Console** and connect to `scw-region1-prod-linux-instance` using the **[serial console directions](../0_labprep/05_awsec2serialconsole))** 
     - Username: instance-id (serial console directions link above shows how to get this for your environment)
     - Password: (relevant credentials in your environment outputs)
 
 - **6.11:** Run the following commands to test connectivity again and make sure the results match expectations 
+    - Traffic should now be blocked by the implicit FW policy on the FGTs for scw-region1-prod-vpc to scw-region1-dev-vpc and scw-region2-rpod-vpc. You should see the scw-region1-prod-vpc to scw-region2-rpod-vpc traffic now being forwarded to the Hub FGTs in the scw-region1-sdwan-vpc (via 0.0.0.0/0 to Connect attachments).
 
-SRC / DST | scw-region1-spoke2-linux-instance (dev) | scw-region2-spoke3-linux-instance (prod)
----|---|---
-**scw-region1-spoke1-linux-instance (prod)** | `curl 10.2.0.14` {{<fail>}} | `curl 10.17.0.14` {{<fail>}}
-**scw-region1-spoke1-linux-instance (prod)** | `ping 10.2.0.14` {{<fail>}} | `ping 10.17.0.14` {{<fail>}}
-
-- Traffic should now be blocked by the implicit FW policy on the FGTs for scw-region1-spoke1-vpc to scw-region1-spoke2-vpc and scw-region2-spoke3-vpc
+SRC / DST | scw-region1-dev-linux-instance (dev segment) | scw-region2-prod-linux-instance (prod segment) | scw-region1-sharedservice-linux-instance (shared segment)
+---|---|---|---
+**scw-region1-prod-linux-instance (prod segment)** | `curl 10.2.0.14` {{<fail>}} | `curl 10.17.0.14` {{<fail>}} | `curl 10.3.0.14` {{<success>}}
+**scw-region1-prod-linux-instance (prod segment)** | `ping 10.2.0.14` {{<fail>}} | `ping 10.17.0.14` {{<fail>}} | `ping 10.3.0.14` {{<success>}}
 
 - **6.12** Navigate back to the **main Core network page** for your Core Network. Select the **Routes tab** and in the route filter, **select the production segment and edge location and click Search routes**. You should eventually see routes matching the table below.
   - **The production segment now does not automatically share routes for attachments**.
@@ -338,10 +396,14 @@ SRC / DST | scw-region1-spoke2-linux-instance (dev) | scw-region2-spoke3-linux-i
 
 Segment | CIDR (region & destination)
 ---|---
-sdwan | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-spoke1), 10.2.0.0/24 (r1-spoke2), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-spoke3), 10.18.0.0/24 (r2-spoke4), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
-production | 10.0.0.0/24 (r1-sdwan), 10.16.0.0/24 (r2-sdwan), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
-development | 10.0.0.0/24 (r1-sdwan), 10.2.0.0/24 (r1-spoke2), 10.16.0.0/24 (r2-sdwan), 10.18.0.0/24 (r2-spoke4), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
-sharedservices | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-spoke1), 10.2.0.0/24 (r1-spoke2), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-spoke3), 10.18.0.0/24 (r2-spoke4), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+sdwan | 10.0.0.0/24 (r1-sdwan), 10.1.0.0/24 (r1-prod), 10.2.0.0/24 (r1-dev), 10.16.0.0/24 (r2-sdwan), 10.17.0.0/24 (r2-prod), 10.18.0.0/24 (r2-dev), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+production | 10.0.0.0/24 (r1-sdwan), 10.3.0.0/24 (r1-shareds), 10.16.0.0/24 (r2-sdwan), 10.19.0.0/24 (r2-shareds), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+development | 10.0.0.0/24 (r1-sdwan), 10.2.0.0/24 (r1-dev), 10.3.0.0/24 (r1-shareds), 10.16.0.0/24 (r2-sdwan), 10.18.0.0/24 (r2-dev), 10.19.0.0/24 (r2-shareds), 10.32.0.0/28 (r1-branch1), 10.48.0.0/28 (r2-branch2), 0.0.0.0/0 (local_region-local_hub)
+sharedservices | 10.1.0.0/24 (r1-prod), 10.2.0.0/24 (r1-dev), 10.3.0.0/24 (r1-shareds), 10.17.0.0/24 (r2-prod), 10.18.0.0/24 (r2-dev), 10.19.0.0/24 (r2-shareds)
+
+- **6.13:** With the updates to the Core Network Policy, the AWS architecture looks like the diagram below. The production segment now does not automatically propagate VPC attachments within the production segment. However, the production VPC attachment routes are still propagated to other segments and shared with the Hub FGTs via BGP.
+
+![](image-cwan-multiregion-step3.png)
 
 {{% /expand %}}
 

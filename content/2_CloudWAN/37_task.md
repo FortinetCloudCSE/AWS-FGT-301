@@ -4,24 +4,12 @@ weight: 15
 
 ---
 
-|      |   |  
-|:----:|:--|
-| **Goal**                   | Utilize Cloud WAN components and Core Network Policy to provide a secured & orchestrated network.
-| **Task**                   | Update Core Networking Policy with logic to automate connecting resources to segments and propagating routes to allow secured traffic flow.
-| **Validation** | Confirm east/west connectivity from EC2 Instance-A via Ping, HTTP.
-
 ## Introduction
-In this lab, we will focus on more advanced routing concepts within Cloud WAN in a multi-region deployment. In the Cloud WAN key concepts, you worked with the core building blocks that helped you build a WAN with broad brush strokes. Now we will focus on tailoring the routing for common use cases.
-
-![](image-cwan-overview.png)
-
-Picking up from the last section we now have attachment policies, segment actions to share routes between segments, and specified a segment to be isolated. In this section, you will need to create the appropriate Cloud WAN Core Network Policy to blackhole certain traffic before reaching the target VPC and also create routing policies that will automatically summarize routes before advertising out to the hub FGTs. Finally you will configure prefix lists and route maps on the hub FortiGates to control what routes are advertised to Cloud WAN.
-
-![](image-cwan-diag.png)
+In this section of the workshop we will focus on information important design considerations for sizing, scale, failover, and other important topics.
 
 ### Summarized Steps (click to expand each for details)
 
-###### **Affinity settings for most BW raw and IPsec**
+###### **Affinity settings for high BW and IPsec**
 {{% expand title = "**Detailed Steps...**" %}}
 
 The ENA driver uses SR-IOV to provide high performance network capabilities. Packet handling sends interrupts to the CPU for processing. These interrupts are received in interrupt queue(s). Multi-queue, if more than one queue on a per interface.
@@ -42,7 +30,7 @@ For demonstration purposes, here is a misconfigured FortiGate to simulate uneven
 
 Overlay tunnels (ie GRE or IPsec)  can be a bottle neck due to the fact that packet handling is limited to a single CPU core be default. This is because the inbound traffic (to be decapsulated for GRE or decrypted for IPsec) will typically be received on the same interface interrupt queue which can only map to one CPU. This occurs because the inbound packet will always look the same (ie src_ip = remote-tunnel-endpoint, dest_ip = fgt-interface-ip, port/protocol) so the NIC driver typically will result in selecting the same interface interrupt queue since the hash or load balancing method results in the same choice.
 
-For GRE, this is a known limitation and the current workaround is to utilize multiple GRE tunnels in ECMP fashion to work around the bottle neck of one tunnel and spread traffic handling across multiple cores.
+For GRE this is a known limitation and the current workaround is to utilize multiple GRE tunnels in ECMP fashion to work around the bottle neck of one tunnel and spread traffic handling across multiple cores.
 
 For IPsec however, we can leverage FortiOS packet redistribution settings (with FortiOS 7.0.8+) to use Receive Packet Steering (RPS) to distribute the decryption and packet handling for inbound traffic across multiple CPU cores (up to 32 CPU cores). This greatly increases performance when working with one or many IPsec tunnels. Reference [**Fortinet documentation**](https://community.fortinet.com/fortigate-3/technical-tip-affinity-packet-redistribution-when-using-single-or-multiple-ipsec-tunnels-on-fortigate-vm-196272)
 
@@ -53,11 +41,17 @@ For IPsec however, we can leverage FortiOS packet redistribution settings (with 
 
 When using FGCP Unicast Active-Passive, you can scale up the instance size, change the instance type to a better performing family (ie c6in vs c6i for more BW + PPS caps and more interface interrupt queues), and increase the FortiOS VM license to support using more CPUs.
 
-Scaling up in size refers to using a larger AWS instance. Even if you are not increasing the FortiOS VM license, if the FGT CPU is not the bottle neck, you can shutdown both instances (ie primary and secondary) then edit the instance settings to switch the instance size to a larger instance (ie c6in.4xlarge -> c6in.8xlarge). Doing this can get your more bandwidth through the IGW, especially if using less than a 32 vCPU instance size, and generally higher BW, PPS, security group connection tracking limits.
+Scaling up in size refers to using a larger AWS instance. Even if you are not increasing the FortiOS VM license, if the FGT CPU is not the bottle neck, you can shutdown both instances (ie primary and secondary) then edit the instance settings to switch the instance size to a larger instance (ie c6in.4xlarge -> c6in.8xlarge). Doing this can get you more bandwidth through the IGW, especially if using less than a 32 vCPU instance size and generally higher BW, PPS, security group connection tracking limits.
 
-Eventually scaling up will have a limit of how much you will be able to get out of one instance being the primary/active unit at a time. Depending on your traffic mix (frame size, PPS, fragmentation, etc) and major features used on top of IPsec or SDWAN (ie NGFW features like App Control, IPS, etc) we have tested up to 10-15 Gbps with a simulated traffic generator (FortiTester using HTTP CPS tests with 1x 44KB payloads over each HTTP session, 1Gbps = 2,500 CPS, 10Gbps = 25,000 CPS). 
+Eventually, scaling up will have a limit of how much you will be able to get out of one instance being the primary/active unit at a time. Depending on your traffic mix (frame size, PPS, fragmentation, etc) and major features used on top of IPsec or SDWAN (ie NGFW features like App Control, IPS, etc) we have tested up to 10-15 Gbps with a simulated traffic generator (FortiTester using HTTP CPS tests with 1x 44KB payloads over each HTTP session, 1Gbps = 2,500 CPS, 10Gbps = 25,000 CPS). 
 
 Scaling out in size refers to using an active active design where multiple FGTs are actively handling traffic and BGP peering with Cloud WAN or Transit Gateway. This design has pros and cons to consider. The pros are that you can spread out the BW, PPS, etc across multiple active FGTs to get higher bandwidth. The cons are complexity, asymmetric routing, and being generally limited to FW + SDWAN features only (ie no L7 NGFW due to asymmetric routing). Cloud WAN CNEs and Transit Gateway are stateless routers that are not flow aware. When there is ECMP routing introduced, a session may come inbound through one FGT and then the reply traffic goes through another FGT. To work with this, you will need to leverage **tcp-session-without-sync** in your firewall policy to allow this traffic through, reference [**Fortinet documentation**](https://community.fortinet.com/fortigate-3/technical-tip-use-case-of-tcp-session-without-syn-in-firewall-policy-136374) for more information. While you can use FGSP to sync session tables across the active group of FGTs, this can have a large impact to the PPS rate (packets per second) and cause AWS to throttle the instances for passing their threshold. This should be used sparingly on specific protocols, ports, and source/destinations. For more information on FGSP, reference [**Fortinet documentation**](https://docs.fortinet.com/document/fortigate/8.0.0/administration-guide/668583/fgsp).
+
+Here is an example of an FGCP A/P dual AZ design vs active active. Note that in the active active, you can have more FGTs that depicted. You can have 4x Connect Peers per Connect Attachment and up to 5 Connect Attachments per VPC and run ECMP across all the Connect Peers.
+
+![](fgcp-cwan-tc1.png)
+
+![](fgts-cwan-tc2.png)
 
 {{% /expand %}}
 
@@ -117,6 +111,43 @@ The EC2 "up to" bandwidth numbers represent the maximum theoretical network thro
 | `c6i.16xlarge` | — | 25 Gbps |
 | `c6i.4xlarge` | 6.25 Gbps | 12.5 Gbps |
 
+You can look up the performance per instance type in AWS documentation (**look at the Ref links above) or you can use AWS CLI to gather this information as well. These commands will show the output per instance type or entire instance family.
+
+```
+aws ec2 describe-instance-types \
+    --instance-types c6i.xlarge \
+    --query "InstanceTypes[*].[InstanceType, NetworkInfo.NetworkPerformance]" \
+    --output table
+
+aws ec2 describe-instance-types \
+  --filters "Name=instance-type,Values=c6i.*" \
+  --query "InstanceTypes[*].[InstanceType, NetworkInfo.NetworkPerformance]" \
+  --output table
+```
+
+```
+--------------------------------------
+|        DescribeInstanceTypes       |
++-------------+----------------------+
+|  c6i.xlarge |  Up to 12.5 Gigabit  |
++-------------+----------------------+
+
+----------------------------------------
+|         DescribeInstanceTypes        |
++---------------+----------------------+
+|  c6i.32xlarge |  50 Gigabit          |
+|  c6i.4xlarge  |  Up to 12.5 Gigabit  |
+|  c6i.large    |  Up to 12.5 Gigabit  |
+|  c6i.2xlarge  |  Up to 12.5 Gigabit  |
+|  c6i.8xlarge  |  12.5 Gigabit        |
+|  c6i.24xlarge |  37.5 Gigabit        |
+|  c6i.16xlarge |  25 Gigabit          |
+|  c6i.metal    |  50 Gigabit          |
+|  c6i.xlarge   |  Up to 12.5 Gigabit  |
+|  c6i.12xlarge |  18.75 Gigabit       |
++---------------+----------------------+
+```
+
 ---
 
 ###### **Single-flow limit**
@@ -153,7 +184,7 @@ Traffic to/from an instance can be limited or dropped based on per-instance-type
 - Packets per second (PPS) in/out
 - Security Group connection tracking
 
-FortiOS 7.2+ exposes these metrics via a `diag` command, ie (diagnose hardware deviceinfo nic-stats port1 | grep exceeded). If you run this command multiple times on any data plane interface and you see any of the exceeded counters increase, traffic is actively being dropped for exceeding that threshold.
+**FortiOS 7.2+ exposes these metrics via a diag command**, ie `diagnose hardware deviceinfo nic-stats port1 | grep exceeded`. If you run this command multiple times on any data plane interface and you see any of the exceeded counters increase, traffic is actively being dropped for exceeding that threshold.
 
 For security group connection tracking, you can bypass this by using rules that do not contain a source address (ie source: 0.0.0.0/0, port: 80: proto: tcp). You can use FortiOS FW policy, local-in policy, and trusted hosts to restrict traffic instead of relying heavily on security group tracking.
 
@@ -282,26 +313,26 @@ Use the [**IPsec overhead calculator**](https://ipsec-overhead-calculator.netsec
 | IP + TCP + ESP (AES-GCM-256 + NAT-T) | ~102 B | ~1398 |
 
 ---
+{{% /expand %}}
 
 ###### **Reference Links**
 
 Reference # | Link
 ------------|-----
-1 | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-network-bandwidth.html
-2 | https://docs.aws.amazon.com/ec2/latest/instancetypes/co.html#co_network
-3 | https://aws.amazon.com/blogs/networking-and-content-delivery/amazon-ec2-instance-level-network-performance-metrics-uncover-new-insights/
-4 | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-network-performance-ena.html
-5 | https://docs.aws.amazon.com/vpn/latest/s2svpn/vpn-limits.html#vpn-quotas-bandwidth
-6 | https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-quotas.html
-7 | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/network_mtu.html
-8 | https://docs.aws.amazon.com/directconnect/latest/UserGuide/interface-set-mtu.html
-9 | https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-quotas.html
-10 | https://community.fortinet.com/t5/FortiGate/Technical-Tip-How-to-check-Network-Performance-Metrics-of-a-AWS/ta-p/294251
-11 | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-connection-tracking.html
-12 | https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-aws-site-to-site-vpn-5-gbps-tunnels-to-support-high-throughput-workloads/
-13 | https://community.fortinet.com/fortigate-3/technical-tip-setting-tcp-mss-value-96548
+1 | **https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-network-bandwidth.html**
+2 | **https://docs.aws.amazon.com/ec2/latest/instancetypes/co.html#co_network**
+3 | **https://aws.amazon.com/blogs/networking-and-content-delivery/amazon-ec2-instance-level-network-performance-metrics-uncover-new-insights/**
+4 | **https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-network-performance-ena.html**
+5 | **https://docs.aws.amazon.com/vpn/latest/s2svpn/vpn-limits.html#vpn-quotas-bandwidth**
+6 | **https://docs.aws.amazon.com/vpc/latest/tgw/transit-gateway-quotas.html**
+7 | **https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/network_mtu.html**
+8 | **https://docs.aws.amazon.com/directconnect/latest/UserGuide/interface-set-mtu.html**
+9 | **https://docs.aws.amazon.com/network-manager/latest/cloudwan/cloudwan-quotas.html**
+10 | **https://community.fortinet.com/t5/FortiGate/Technical-Tip-How-to-check-Network-Performance-Metrics-of-a-AWS/ta-p/294251**
+11 | **https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-connection-tracking.html**
+12 | **https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-aws-site-to-site-vpn-5-gbps-tunnels-to-support-high-throughput-workloads/**
+13 | **https://community.fortinet.com/fortigate-3/technical-tip-setting-tcp-mss-value-96548**
 
 ---
-{{% /expand %}}
 
 ### This concludes this section
