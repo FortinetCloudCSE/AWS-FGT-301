@@ -94,6 +94,7 @@ In the HUB section
      - 'port1' is selected
 	 - **Update** the **Override IP** to the public IP listed in `scw-region2-hub2-login-url` in your [**environment outputs**](../0_labprep/02_logistics)
    - Network Advertisement - Static is selected and below it is a CIDR the Secondary Hub is in
+![image](sotsechubnetwork.png?width=950px)
 
 {{% notice info %}}
 We need to select **Override IP** as the Hub FGTs are running in AWS and are using [**Elastic IPs**](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-eips.html) (EIP) for a public static IP address for internet communications. These EIPs behave like an upstream NAT rule so the FGTs and FMG will not see this public IP on the FGT's interface configuration. Thus we are overriding the IP value so the Branch FGTs point to the correct public IP to reach the Hubs.

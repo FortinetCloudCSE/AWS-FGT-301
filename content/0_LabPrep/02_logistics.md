@@ -21,6 +21,11 @@ user: <aws-login-info-example>
 pass: <aws-login-info-example>
 -=-=-=-=-
 
+-=-=-=-=- (linux console info)
+user: "this will be the ec2 instance id for the specific step your on"
+pass: <linux-console-info-example>
+-=-=-=-=-
+
 -=-=-=-=- (ftnt cwan info)
 # hub1_fgt_cwan_connect_peer1_address1 = 100.64.1.2
 

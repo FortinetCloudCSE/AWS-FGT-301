@@ -424,8 +424,4 @@ sharedservices | 10.1.0.0/24 (r1-prod), 10.2.0.0/24 (r1-dev), 10.3.0.0/24 (r1-sh
 - Each CWAN Connect (tunnel-less) peer supports up to 100 Gbps, (actual limit is based on instance type BW)
 - Jumbo frames (8500 bytes) are supported for all attachments except VPN (1500 bytes)
 
-{{% notice tip %}}
-TODO... Once completed with this task, complete the quiz below as an individual whenever you are ready.
-{{% /notice %}}
-
 ### This concludes this section
