@@ -29,7 +29,7 @@ The instances in the screenshot are just an example. Reference the workshop guid
   - Login to the EC2 instance:
     - You may need to hit **ENTER** to get a login prompt
         - username: <<copied Instance ID from above>>
-        - Password: **`FORTInet123!`** 
+        - Password: <<reference the password in **linux console info** in the environment outputs
 
     {{% expand title="**Expand for Screenshot**" %}}
 ![](image-ec2conn-4.png)

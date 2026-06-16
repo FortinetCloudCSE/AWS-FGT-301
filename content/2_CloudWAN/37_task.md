@@ -317,6 +317,8 @@ Use the [**IPsec overhead calculator**](https://ipsec-overhead-calculator.netsec
 
 ###### **Reference Links**
 
+{{% expand title = "**Detailed Steps...**" %}}
+
 Reference # | Link
 ------------|-----
 1 | **https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-network-bandwidth.html**
@@ -334,5 +336,7 @@ Reference # | Link
 13 | **https://community.fortinet.com/fortigate-3/technical-tip-setting-tcp-mss-value-96548**
 
 ---
+
+{{% /expand %}}
 
 ### This concludes this section
