@@ -48,7 +48,7 @@ pass: <linux-console-info-example>
 username: <ftnt-login-info-example>
 password <ftnt-login-info-example>
  
-# scw-region1-fmg-login-urll = https://1.2.3.4
+# scw-region1-fmg-login-url = https://1.2.3.4
  
 # scw-region1-hub1-login-url: https://2.3.4.5
  
