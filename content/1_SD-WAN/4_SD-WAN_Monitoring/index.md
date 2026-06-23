@@ -149,7 +149,7 @@ Since FAZ features have been enabled on this FMG, the FAZ Views are now availabl
 
 ***Navigation: FMG → Log View***
 
-For this demo, 8 **Custom Log Views** have been created.
+For this workshop, 9 **Custom Log Views** have been created.
 
 ![CUSTOM LOG VIEW](printscreen-04-20.png)
 
