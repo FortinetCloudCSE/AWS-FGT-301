@@ -1,8 +1,8 @@
 ---
 title: "Provisioning"
-linkTitle: "Section 8: Provisioning"
+linkTitle: "Section 9: Provisioning"
 chapter: false
-weight: 8
+weight: 9
 ---
 
 > Bulk Provisioning using Device Blueprint and CSV Import

@@ -22,7 +22,7 @@ pass: <aws-login-info-example>
 -=-=-=-=-
 
 -=-=-=-=- (linux console info)
-user: "this will be the ec2 instance id for the specific step your on"
+user: this will be the ec2 instance id for the specific step your on
 pass: <linux-console-info-example>
 -=-=-=-=-
 
@@ -48,7 +48,7 @@ pass: <linux-console-info-example>
 username: <ftnt-login-info-example>
 password <ftnt-login-info-example>
  
-# scw-region1-fmg-login-urll = "https://1.2.3.4"
+# scw-region1-fmg-login-urll = https://1.2.3.4
  
 # scw-region1-hub1-login-url: https://2.3.4.5
  
@@ -58,7 +58,7 @@ password <ftnt-login-info-example>
 
 # scw-region2-branch2-login-url: https://5.6.7.8
 
-# route_controller_website_url = "http://scw-uw1-route-controller-123456789012.s3-website-us-west-1.amazonaws.com"
+# route_controller_website_url = http://scw-uw1-route-controller-123456789012.s3-website-us-west-1.amazonaws.com
 -=-=-=-=-
 ```
 

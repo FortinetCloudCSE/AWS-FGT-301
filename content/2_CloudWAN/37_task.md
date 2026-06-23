@@ -108,7 +108,7 @@ The EC2 "up to" bandwidth numbers represent the maximum theoretical network thro
 
 | Instance | Baseline | Burst ("up to") |
 |----------|----------|-----------------|
-| `c6i.16xlarge` | — | 25 Gbps |
+| `c6i.16xlarge` | 25 Gbps | - |
 | `c6i.4xlarge` | 6.25 Gbps | 12.5 Gbps |
 
 You can look up the performance per instance type in AWS documentation (**look at the Ref links above) or you can use AWS CLI to gather this information as well. These commands will show the output per instance type or entire instance family.
