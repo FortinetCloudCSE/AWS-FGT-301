@@ -121,8 +121,8 @@ The rules page works like a **top-down policy engine**. The first matched rule i
 Previously when going through the SOT wizard there was a note that we are allowing the Branch traffic destined to each region to go directly to that region's Hub to avoid cross region charges. Here are the changes we implemented after the original SOT was created to allow this behavior:
 
   - Under SD-WAN Zones, select and edit the HUB1 and HUB2 and expand Advanced Options and see that **service-sla-tie-break** is set to **fib-best-match**
-  - Under SD-WAN Zones, select and edit the HUB1-VPN1 and HUB2-VPN1 and expand Advanced Options and see that **cost and priority** are set to **10** and **priority-in-sla** is set to **10** and **priority-in-sla** is set to **110**
-  - Under SD-WAN Zones, select and edit the HUB1-VPN1-2 andHUB2-VPN1-2 and expand Advanced Options and see that **cost** is set to **11** and **priority** is set to **10** and **priority-in-sla** is set to **11** and **priority-in-sla** is set to **111**
+  - Under SD-WAN Zones, select and edit the HUB1-VPN1 and HUB2-VPN1 and expand Advanced Options and see that **cost and priority** are set to **10** and **priority-in-sla** is set to **10** and **priority-out-sla** is set to **110**
+  - Under SD-WAN Zones, select and edit the HUB1-VPN1-2 andHUB2-VPN1-2 and expand Advanced Options and see that **cost** is set to **11** and **priority** is set to **10** and **priority-in-sla** is set to **11** and **priority-out-sla** is set to **111**
   - Under SD-WAN Rules, select and edit the HUB rule and see that **Tie Break** is set to **Best Match**
 
 **Note** the priority-in/out-sla values are shared with the Hub FGTs via the embedded information in the ICMP Health Check. On the Hub FGT this is translated into BGP MED values to use based on current SLA status. Reference [**Fortinet Documentation**](https://docs.fortinet.com/document/fortigate/7.6.0/sd-wan-new-features/460015/map-sd-wan-member-priorities-to-bgp-med-attribute-when-spoke-advertises-routes-using-ibgp-to-hub-7-6-1) for more information.
