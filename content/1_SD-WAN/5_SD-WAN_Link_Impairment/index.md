@@ -28,7 +28,7 @@ Let's look at the Main SD-WAN Monitor Map View again.
 
 ### Map View
 
-- Notice **Branch1 is Orange**. You can then see the Underlay1 links that are failing their Performance SLA. **You may need wait a few minutes and navigate onto another page in the FMG GUI and come back to Map View.**
+- Notice **Branch1 is Orange**. You can then see the Underlay1 links that are failing their Performance SLA. **You may need to hit the refresh button (top right of the map) or wait a few minutes and navigate onto another page in the FMG GUI and come back to Map View.**
 
   ![MAP VIEW](printscreen-05-3.png)
 
