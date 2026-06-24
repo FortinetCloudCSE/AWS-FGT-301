@@ -23,7 +23,7 @@ This is enabled within a firewall policy rule. Both of these settings must be en
 
 ## Application Performance Logs
 
-***Navigation: FMG → Log View → Custom Views → Application Performance***
+***Navigation: FMG → Log View → Custom Views → APM (Application Performance)***
 
 These are the logs that supply the data to create the graphs. Filter on: `logid="0113022941"`
 
