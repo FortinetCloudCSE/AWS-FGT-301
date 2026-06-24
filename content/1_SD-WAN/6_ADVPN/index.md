@@ -107,7 +107,7 @@ The ADVPN Health Check is **not** using the HUB IP of 169.254.253.253 as its tar
 
 ![ROUTE MONITORING](printscreen-07-7.png)
 
-Branch1 now has a dynamic **BGP route** to the Branch2 network **10.48.0.32/28** and a **static route** to the Branch2 loopback IP pointing to the shortcut tunnel **HUB1-VPN1_0**
+Branch1 now has a dynamic **BGP route** to the Branch2 network **10.48.0.32/28** and a **static route** to the Branch2 loopback IP pointing to the shortcut tunnel **HUB1-VPN1_0**. **Note** that you may need to navigate out of the route widget to something else and come back to it to see the new routes.
 
 ---
 
