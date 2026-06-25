@@ -205,8 +205,8 @@ Typical behavior seen with a AWS Site-to-Site VPN connection is that not all thr
 
 | Gateway type | ECMP supported | Max per VPN Connection |
 |---|---|---|
-| Cloud WAN and Transit Gateway (Large BW option) | Yes | ~2.5 Gbps / 280K PPS |
-| Cloud WAN and Transit Gateway (Standard BW option) | Yes | ~10 Gbps / 800K PPS |
+| Cloud WAN and Transit Gateway (Large BW option) | Yes | ~10 Gbps / 800K PPS |
+| Cloud WAN and Transit Gateway (Standard BW option) | Yes | ~2.5 Gbps / 280K PPS |
 | Virtual Private Gateway | No | 1.25 Gbps / 140K PPS |
 
 ---
