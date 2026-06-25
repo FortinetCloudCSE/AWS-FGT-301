@@ -503,7 +503,14 @@ Total number of prefixes 3
 ```
 - **4.6:** Notice that for the Connect peers, we are advertising each branch FGT local CIDR (**10.32.0.32/28, 10.48.0.32/28**). We want to summarize this to **10.32.0.0/11** as this will cover all branch FGTs for this SDWAN deployment.  To do this we are going to use prefix lists, route maps, a static route, a bgp network statement, and route-map settings for both Connect Peers and branch FGT peers. The goal is to only advertise the summary route to AWS but not to the branch FGTs so we do not affect ADVPN shortcuts between branches.
 
-- **4.7:** **Copy and paste** the CLI commands below **on both hub FGTs**. These are the prefix lists, route maps, and static route that will be common configuration. **Don't forget to run through this step on hub2 FGT**.
+- **4.7:** **Copy and paste** the CLI commands below **on both hub FGTs**. **Login with READ/WRITE** to **scw-region1-hub1-fgt1**, by referencing `scw-region1-hub1-login-url` and `scw-region2-hub2-login-url` and the relevant credentials in the [**environment outputs**](../0_labprep/02_logistics). These are the prefix lists, route maps, and static route that will be common configuration. **Don't forget to run through this step on hub2 FGT**.
+
+{{% notice info %}}
+You can copy and paste the entire code block in to the CLI session in the GUI in one shot. There is no need to copy and paste each line at a time. FortiOS will take the multi-line content and apply it line by line. Here is an example of what to expect.
+
+![](image-fgt-copy-paste-example.png)
+
+{{% /notice %}}
 
 ```
 ### Prefix list for summary for all branches
