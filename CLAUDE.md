@@ -32,7 +32,7 @@ content/                    — workshop pages (Hugo page bundles, ordered by `w
 layouts/shortcodes/         — repo-local shortcodes: ContainerFlow.html, success.html, fail.html,
                               FTNThugoFlow.html, fortihugorunner.html
 scripts/repoConfig.json     — per-repo site config (title, author, banner, shortcuts, quizUrl)
-plans/                      — plan/log/spec files for this repo (see gotchas); plans/README.md explains why
+plans/                      — plan/log/spec files, `NNNN_` prefixed (see gotchas); plans/README.md explains why
 Jenkinsfile                 — GitHub commit-status pipeline; its content-check stage is disabled
 fdevsec.yaml                — FortiDevSec scan config
 .github/workflows/
@@ -93,6 +93,6 @@ Optional locally: `DOCKER_CONTEXT` / `DOCKER_HOST` — fortihugorunner honors th
 
 **Change site chrome** (title, banner, sidebar links, quiz URL): edit `scripts/repoConfig.json`.
 
-**Plan/log/spec files**: write them to root-level `plans/` as `YYYY-MM-DD_<git-username>_<slug>.md` (+ `.log.md`, optional `.spec.md`). Never `docs/plans/`.
+**Plan/log/spec files**: write them to root-level `plans/` as `NNNN_YYYY-MM-DD_<git-username>_<slug>.md` (+ optional `.log.md`, `.spec.md`). Never `docs/plans/`. `NNNN` is a per-repo sequence; the log is optional; on completion, durable facts get promoted into this file and the plan is left to decay. See `plans/README.md`.
 
 **Debug a broken published page**: run the CI build command locally — the dev server is more forgiving than the static build. `errorLevel` in `scripts/repoConfig.json` is `warning`, so Hugo warnings do not fail the build.
