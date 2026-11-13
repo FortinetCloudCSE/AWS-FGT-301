@@ -55,7 +55,7 @@ Click Next to complete step 1
 In the HUB section
  - Primary HUB - HUB1 is selected
     - The Cost is 10
- - Secondary HUB - HUB1 is selected
+ - Secondary HUB - HUB2 is selected
     - The Cost is 10
 
 {{% notice info %}}
